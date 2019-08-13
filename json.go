@@ -90,12 +90,10 @@ func (d *Decoder) Token() Token {
 				if b == '{' {
 					d.match('}')
 					d.stack = d.stack[:len(d.stack)-1]
-					d.comma()
 					return d.token(ObjEnd)
 				} else if b == '[' {
 					d.match(']')
 					d.stack = d.stack[:len(d.stack)-1]
-					d.comma()
 					return d.token(ArrEnd)
 				}
 			}
@@ -107,14 +105,12 @@ func (d *Decoder) Token() Token {
 				return t
 			case '}':
 				d.stack = d.stack[:len(d.stack)-1]
-				d.comma()
 				return d.token(ObjEnd)
 			}
 		case '[':
 			switch d.peek() {
 			case ']':
 				d.stack = d.stack[:len(d.stack)-1]
-				d.comma()
 				return d.token(ArrEnd)
 			}
 		}
@@ -134,14 +130,12 @@ func (d *Decoder) value() Token {
 		return d.token(ArrBegin)
 	case '"':
 		t := d.string()
-		d.comma()
 		return t
 	case 'n':
 		d.match('n')
 		d.match('u')
 		d.match('l')
 		d.match('l')
-		d.comma()
 		return d.token(Null)
 	case 't':
 		d.mark = d.pos
@@ -149,7 +143,6 @@ func (d *Decoder) value() Token {
 		d.match('r')
 		d.match('u')
 		d.match('e')
-		d.comma()
 		return d.token(Boolean)
 	case 'f':
 		d.mark = d.pos
@@ -158,7 +151,6 @@ func (d *Decoder) value() Token {
 		d.match('l')
 		d.match('s')
 		d.match('e')
-		d.comma()
 		return d.token(Boolean)
 	default:
 		panic("value expected")
@@ -198,17 +190,6 @@ func (d *Decoder) whitespace() {
 			break
 		}
 	}
-}
-
-func (d *Decoder) comma() {
-	// if l := len(d.stack); l > 0 {
-	// 	b := d.stack[l-1]
-	// 	if b == '{' || b == '[' {
-	// 		d.stack = append(d.stack, ',')
-	// 	}
-	// } else {
-	// 	d.stack = append(d.stack, 0)
-	// }
 }
 
 func (d *Decoder) Unmarshal() (v interface{}, err error) {
