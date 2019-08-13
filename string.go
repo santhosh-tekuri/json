@@ -1,7 +1,6 @@
 package json
 
 import (
-	"fmt"
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -40,29 +39,11 @@ func (d *Decoder) string() Token {
 }
 
 func (t Token) Str() string {
-	switch t.Type {
-	case EOF:
-		return "EOF"
-	case ObjBegin:
-		return "{"
-	case ObjEnd:
-		return "}"
-	case ArrBegin:
-		return "["
-	case ArrEnd:
-		return "]"
-	case String:
-		s, _ := unquoteBytes(t.Data)
-		return string(s)
-	case Number:
-		return string(t.Data)
-	case Null:
-		return "<nil>"
-	case Boolean:
-		return string(t.Data)
-	default:
-		return fmt.Sprintf("{%v, %q}", t.Type, string(t.Data))
+	if t.Type != String {
+		panic("expected string")
 	}
+	s, _ := unquoteBytes(t.Data)
+	return string(s)
 }
 
 func (x Token) Eq(t string) bool {

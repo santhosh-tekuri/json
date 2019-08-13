@@ -60,17 +60,26 @@ func (d *Decoder) oneOrMoreDigits() {
 
 // Float64 returns the number as a float64.
 func (t Token) Float64() float64 {
+	if t.Type != Number {
+		panic("expected number")
+	}
 	f, _ := strconv.ParseFloat(string(t.Data), 64)
 	return f
 }
 
 // Int64 returns the number as an int64.
 func (t Token) Int64() int64 {
+	if t.Type != Number {
+		panic("expected number")
+	}
 	i, _ := strconv.ParseInt(string(t.Data), 10, 64)
 	return i
 }
 
 // Int returns the number as an int.
 func (t Token) Int() int {
+	if t.Type != Number {
+		panic("expected number")
+	}
 	return int(t.Int64())
 }

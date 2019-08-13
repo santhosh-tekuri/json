@@ -25,7 +25,30 @@ type Token struct {
 	Data []byte
 }
 
+func (t Token) Obj() {
+	if t.Type != ObjBegin {
+		panic("expected object")
+	}
+}
+
+func (t Token) Arr() {
+	if t.Type != ArrBegin {
+		panic("expected array")
+	}
+}
+
+func (t Token) End() bool {
+	return t.Type == ObjEnd || t.Type == ArrEnd
+}
+
+func (t Token) Null() bool {
+	return t.Type == Null
+}
+
 func (t Token) Bool() bool {
+	if t.Type != Boolean {
+		panic("boolean expected")
+	}
 	return t.Data[0] == 't'
 }
 
