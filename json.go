@@ -1,3 +1,17 @@
+// Copyright 2019 Santhosh Kumar Tekuri
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package json
 
 import (
@@ -19,52 +33,6 @@ func NewDecoder(b []byte) *Decoder {
 func (d *Decoder) Reset(b []byte) {
 	d.buf, d.pos, d.stack = b, 0, d.stack[:0]
 }
-
-type Token struct {
-	Type Type
-	Data []byte
-}
-
-func (t Token) Obj() {
-	if t.Type != ObjBegin {
-		panic("expected object")
-	}
-}
-
-func (t Token) Arr() {
-	if t.Type != ArrBegin {
-		panic("expected array")
-	}
-}
-
-func (t Token) End() bool {
-	return t.Type == ObjEnd || t.Type == ArrEnd
-}
-
-func (t Token) Null() bool {
-	return t.Type == Null
-}
-
-func (t Token) Bool() bool {
-	if t.Type != Boolean {
-		panic("boolean expected")
-	}
-	return t.Data[0] == 't'
-}
-
-type Type int
-
-const (
-	EOF Type = iota + 1
-	ObjBegin
-	ObjEnd
-	ArrBegin
-	ArrEnd
-	String
-	Number
-	Null
-	Boolean
-)
 
 func (d *Decoder) token(t Type) Token {
 	if len(d.stack) > 0 {
@@ -214,6 +182,24 @@ func (d *Decoder) whitespace() {
 		}
 	}
 }
+
+func (d *Decoder) Skip() {
+	c := 0
+	for {
+		t := d.Token()
+		switch {
+		case t.Begin():
+			c++
+		case t.End():
+			c--
+		}
+		if c == 0 {
+			break
+		}
+	}
+}
+
+// unmarshalling ---
 
 func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	defer func() {
