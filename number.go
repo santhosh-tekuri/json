@@ -29,7 +29,7 @@ func (d *Decoder) number() Token {
 	case '1' <= b && b <= '9':
 		d.digits()
 	default:
-		panic("invalid number")
+		panic(d.error(b, "in numeric literal"))
 	}
 	if d.hasMore() {
 		if d.peek() == '.' {
@@ -65,7 +65,7 @@ func (d *Decoder) digits() {
 func (d *Decoder) oneOrMoreDigits() {
 	b := d.next()
 	if !('0' <= b && b <= '9') {
-		panic("invalid number")
+		panic(d.error(b, "in numeric literal"))
 	}
 	d.digits()
 }

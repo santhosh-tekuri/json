@@ -17,6 +17,7 @@ package json
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 type Decoder struct {
@@ -63,12 +64,12 @@ func (d *Decoder) Token() Token {
 			return d.token(EOF)
 		case ':':
 			d.stack = d.stack[:len(d.stack)-1]
-			d.match(':')
+			d.match(':', "after object key")
 			d.whitespace()
 		case ',':
 			d.stack = d.stack[:len(d.stack)-1]
 			if d.peek() == ',' {
-				d.match(',')
+				d.next()
 				d.whitespace()
 				b := d.stack[len(d.stack)-1]
 				if b == '{' {
@@ -79,24 +80,24 @@ func (d *Decoder) Token() Token {
 			} else {
 				b := d.stack[len(d.stack)-1]
 				if b == '{' {
-					d.match('}')
+					d.match('}', "after object key:value pair")
 					d.stack = d.stack[:len(d.stack)-1]
 					return d.token(ObjEnd)
 				} else if b == '[' {
-					d.match(']')
+					d.match(']', "after array element")
 					d.stack = d.stack[:len(d.stack)-1]
 					return d.token(ArrEnd)
 				}
 			}
 		case '{':
 			switch d.peek() {
-			case '"':
-				t := d.string()
-				d.stack = append(d.stack, ':')
-				return t
 			case '}':
 				d.stack = d.stack[:len(d.stack)-1]
 				return d.token(ObjEnd)
+			default:
+				t := d.string()
+				d.stack = append(d.stack, ':')
+				return t
 			}
 		case '[':
 			switch d.peek() {
@@ -123,28 +124,32 @@ func (d *Decoder) value() Token {
 		t := d.string()
 		return t
 	case 'n':
-		d.match('n')
-		d.match('u')
-		d.match('l')
-		d.match('l')
+		d.match('n', "in literal null")
+		d.match('u', "in literal null")
+		d.match('l', "in literal null")
+		d.match('l', "in literal null")
 		return d.token(Null)
 	case 't':
 		d.mark = d.pos
-		d.match('t')
-		d.match('r')
-		d.match('u')
-		d.match('e')
+		d.match('t', "in literal true")
+		d.match('r', "in literal true")
+		d.match('u', "in literal true")
+		d.match('e', "in literal true")
 		return d.token(Boolean)
 	case 'f':
 		d.mark = d.pos
-		d.match('f')
-		d.match('a')
-		d.match('l')
-		d.match('s')
-		d.match('e')
+		d.match('f', "in literal false")
+		d.match('a', "in literal false")
+		d.match('l', "in literal false")
+		d.match('s', "in literal false")
+		d.match('e', "in literal false")
 		return d.token(Boolean)
 	default:
-		panic("value expected")
+		b := d.peek()
+		if b == '-' || ('0' <= b && b <= '9') {
+			return d.number()
+		}
+		panic(d.error(d.peek(), "looking for beginning of value"))
 	}
 }
 
@@ -154,22 +159,22 @@ func (d *Decoder) hasMore() bool {
 
 func (d *Decoder) peek() byte {
 	if !d.hasMore() {
-		panic("unexpeted EOF")
+		panic(&SyntaxError{"unexpected end of JSON input", int64(d.pos)})
 	}
 	return d.buf[d.pos]
 }
 
 func (d *Decoder) next() byte {
 	if !d.hasMore() {
-		panic("unexpeted EOF")
+		panic(&SyntaxError{"unexpected end of JSON input", int64(d.pos)})
 	}
 	d.pos++
 	return d.buf[d.pos-1]
 }
 
-func (d *Decoder) match(b byte) {
-	if d.next() != b {
-		panic("expecting '" + string(b) + "'")
+func (d *Decoder) match(m byte, context string) {
+	if b := d.next(); b != m {
+		panic(d.error(b, context))
 	}
 }
 
@@ -204,7 +209,11 @@ func (d *Decoder) Skip() {
 func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New(r.(string))
+			if e, ok := r.(*SyntaxError); ok {
+				err = e
+			} else {
+				err = errors.New(r.(string)) // todo re-panic
+			}
 		}
 	}()
 	return d.unmarshal(), nil
@@ -244,4 +253,33 @@ func (d *Decoder) unmarshal() interface{} {
 	default:
 		panic(fmt.Sprintln("got", t))
 	}
+}
+
+// ---
+
+// A SyntaxError is a description of a JSON syntax error.
+type SyntaxError struct {
+	msg    string // description of error
+	Offset int64  // error occurred after reading Offset bytes
+}
+
+func (e *SyntaxError) Error() string { return e.msg }
+
+func (d *Decoder) error(c byte, context string) error {
+	return &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)}
+}
+
+// quoteChar formats c as a quoted character literal
+func quoteChar(c byte) string {
+	// special cases - different from quoted strings
+	if c == '\'' {
+		return `'\''`
+	}
+	if c == '"' {
+		return `'"'`
+	}
+
+	// use quoted string with different quotation marks
+	s := strconv.Quote(string(c))
+	return "'" + s[1:len(s)-1] + "'"
 }

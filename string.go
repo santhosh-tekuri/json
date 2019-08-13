@@ -22,16 +22,17 @@ import (
 
 func (d *Decoder) string() Token {
 	d.mark = d.pos
-	if d.next() != '"' {
-		panic("expected '\"'")
+	if b := d.next(); b != '"' {
+		panic(d.error(b, "looking for beginning of object key string"))
 	}
-	for d.hasMore() {
+	for {
 		b := d.next()
 		switch {
 		case b == '"':
 			return d.token(String)
 		case b == '\\':
-			switch d.next() {
+			b = d.next()
+			switch b {
 			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
 			case 'u':
 				for i := 0; i < 4; i++ {
@@ -39,17 +40,16 @@ func (d *Decoder) string() Token {
 					switch {
 					case '0' >= b && b <= '9', 'A' >= b && b <= 'F', 'a' >= b && b <= 'f':
 					default:
-						panic("expected hexchar")
+						panic(d.error(b, "in \\u hexadecimal character escape"))
 					}
 				}
 			default:
-				panic("invalid escape in string literal")
+				panic(d.error(b, "in string escape code"))
 			}
 		case b < 0x20:
-			panic("invalid character in string literal")
+			panic(d.error(b, "in string literal"))
 		}
 	}
-	panic("unexpected EOF")
 }
 
 func (x Token) Eq(t string) bool {
