@@ -25,7 +25,7 @@ type Token struct {
 	Data []byte
 }
 
-func (t Token) Boolean() bool {
+func (t Token) Bool() bool {
 	return t.Data[0] == 't'
 }
 
@@ -207,11 +207,11 @@ func (d *Decoder) unmarshal() interface{} {
 	case Null:
 		return nil
 	case String:
-		return t.String()
+		return t.Str()
 	case Number:
 		return t.Float64()
 	case Boolean:
-		return t.Boolean()
+		return t.Bool()
 	case ObjBegin:
 		m := make(map[string]interface{})
 		for {
@@ -219,7 +219,7 @@ func (d *Decoder) unmarshal() interface{} {
 			if t.Type == ObjEnd {
 				return m
 			}
-			m[t.String()] = d.unmarshal()
+			m[t.Str()] = d.unmarshal()
 		}
 	case ArrBegin:
 		a := []interface{}(nil)

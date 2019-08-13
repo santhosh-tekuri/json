@@ -39,7 +39,7 @@ func (d *Decoder) string() Token {
 	panic("unexpected EOF")
 }
 
-func (t Token) String() string {
+func (t Token) Str() string {
 	switch t.Type {
 	case EOF:
 		return "EOF"
