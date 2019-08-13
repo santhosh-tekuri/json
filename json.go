@@ -1,5 +1,10 @@
 package json
 
+import (
+	"errors"
+	"fmt"
+)
+
 type Decoder struct {
 	buf   []byte
 	pos   int
@@ -27,7 +32,7 @@ func (t Token) Boolean() bool {
 type Type int
 
 const (
-	EOF Type = iota
+	EOF Type = iota + 1
 	ObjBegin
 	ObjEnd
 	ArrBegin
@@ -204,4 +209,49 @@ func (d *Decoder) comma() {
 	// } else {
 	// 	d.stack = append(d.stack, 0)
 	// }
+}
+
+func (d *Decoder) Unmarshal() (v interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(r.(string))
+		}
+	}()
+	return d.unmarshal(), nil
+}
+
+func (d *Decoder) unmarshal() interface{} {
+	t := d.Token()
+	switch t.Type {
+	case Null:
+		return nil
+	case String:
+		return t.String()
+	case Number:
+		return t.Float64()
+	case Boolean:
+		return t.Boolean()
+	case ObjBegin:
+		m := make(map[string]interface{})
+		for {
+			t = d.Token()
+			if t.Type == ObjEnd {
+				return m
+			}
+			m[t.String()] = d.unmarshal()
+		}
+	case ArrBegin:
+		a := []interface{}(nil)
+		for {
+			v := d.unmarshal()
+			if v == ArrEnd {
+				return a
+			}
+			a = append(a, v)
+		}
+	case ArrEnd:
+		return ArrEnd
+	default:
+		panic(fmt.Sprintln("got", t))
+	}
 }
