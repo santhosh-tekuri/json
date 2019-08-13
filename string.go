@@ -8,7 +8,7 @@ import (
 )
 
 func (d *Decoder) string() Token {
-	pos := d.pos
+	d.mark = d.pos
 	if d.next() != '"' {
 		panic("expected '\"'")
 	}
@@ -16,7 +16,7 @@ func (d *Decoder) string() Token {
 		b := d.next()
 		switch {
 		case b == '"':
-			return Token{String, d.buf[pos:d.pos]}
+			return d.token(String)
 		case b == '\\':
 			switch d.next() {
 			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
@@ -65,7 +65,7 @@ func (t Token) String() string {
 	}
 }
 
-func (x Token) Equals(t string) bool {
+func (x Token) Eq(t string) bool {
 	s := x.Data
 	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
 		return false

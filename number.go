@@ -3,7 +3,7 @@ package json
 import "strconv"
 
 func (d *Decoder) number() Token {
-	pos := d.pos
+	d.mark = d.pos
 
 	// optional -
 	if d.peek() == '-' {
@@ -36,7 +36,7 @@ func (d *Decoder) number() Token {
 			}
 		}
 	}
-	return Token{Number, d.buf[pos:d.pos]}
+	return d.token(Number)
 }
 
 func (d *Decoder) digits() {
