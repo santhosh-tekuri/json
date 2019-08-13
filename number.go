@@ -37,11 +37,11 @@ func (d *Decoder) number() Token {
 			d.oneOrMoreDigits()
 		}
 		if d.hasMore() {
-			b = d.peek()
-			if b == 'e' || b == 'E' {
+			p := d.peek()
+			if p == 'e' || p == 'E' {
 				d.next()
-				b = d.peek()
-				if b == '+' || b == '-' {
+				p = d.peek()
+				if p == '+' || p == '-' {
 					d.next()
 				}
 				d.oneOrMoreDigits()
@@ -53,8 +53,8 @@ func (d *Decoder) number() Token {
 
 func (d *Decoder) digits() {
 	for d.hasMore() {
-		b := d.peek()
-		if '0' <= b && b <= '9' {
+		p := d.peek()
+		if '0' <= p && p <= '9' {
 			d.next()
 		} else {
 			return

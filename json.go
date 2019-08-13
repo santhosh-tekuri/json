@@ -37,8 +37,8 @@ func (d *Decoder) Reset(b []byte) {
 
 func (d *Decoder) token(t Type) Token {
 	if len(d.stack) > 0 {
-		b := d.stack[len(d.stack)-1]
-		if b == '{' || b == '[' {
+		s := d.stack[len(d.stack)-1]
+		if s == '{' || s == '[' {
 			switch t {
 			case ObjEnd, ArrEnd, String, Number, Null, Boolean: // value end
 				d.stack = append(d.stack, ',')
@@ -58,8 +58,8 @@ func (d *Decoder) token(t Type) Token {
 func (d *Decoder) Token() Token {
 	d.whitespace()
 	if len(d.stack) > 0 {
-		b := d.stack[len(d.stack)-1]
-		switch b {
+		s := d.stack[len(d.stack)-1]
+		switch s {
 		case 0:
 			return d.token(EOF)
 		case ':':
@@ -71,19 +71,19 @@ func (d *Decoder) Token() Token {
 			if d.peek() == ',' {
 				d.next()
 				d.whitespace()
-				b := d.stack[len(d.stack)-1]
-				if b == '{' {
+				s := d.stack[len(d.stack)-1]
+				if s == '{' {
 					t := d.string()
 					d.stack = append(d.stack, ':')
 					return t
 				}
 			} else {
-				b := d.stack[len(d.stack)-1]
-				if b == '{' {
+				s := d.stack[len(d.stack)-1]
+				if s == '{' {
 					d.match('}', "after object key:value pair")
 					d.stack = d.stack[:len(d.stack)-1]
 					return d.token(ObjEnd)
-				} else if b == '[' {
+				} else if s == '[' {
 					d.match(']', "after array element")
 					d.stack = d.stack[:len(d.stack)-1]
 					return d.token(ArrEnd)
@@ -145,8 +145,8 @@ func (d *Decoder) value() Token {
 		d.match('e', "in literal false")
 		return d.token(Boolean)
 	default:
-		b := d.peek()
-		if b == '-' || ('0' <= b && b <= '9') {
+		p := d.peek()
+		if p == '-' || ('0' <= p && p <= '9') {
 			return d.number()
 		}
 		panic(d.error(d.peek(), "looking for beginning of value"))
@@ -180,7 +180,7 @@ func (d *Decoder) match(m byte, context string) {
 
 func (d *Decoder) whitespace() {
 	for d.hasMore() {
-		if b := d.peek(); b == ' ' || b == '\t' || b == '\r' || b == '\n' {
+		if p := d.peek(); p == ' ' || p == '\t' || p == '\r' || p == '\n' {
 			d.next()
 		} else {
 			break
