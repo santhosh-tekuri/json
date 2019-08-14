@@ -63,7 +63,14 @@ func (d *Decoder) token() Type {
 		s := d.stack[len(d.stack)-1]
 		switch s {
 		case 0:
-			return EOF
+			d.stack[len(d.stack)-1] = 1
+			return EOD
+		case 1:
+			if d.hasMore() {
+				d.stack = d.stack[:len(d.stack)-1]
+			} else {
+				return EOF
+			}
 		case ':':
 			d.stack = d.stack[:len(d.stack)-1]
 			if d.match(':', "after object key") == Error {

@@ -16,11 +16,12 @@ package json
 
 import "strconv"
 
-type Type int
+type Type byte
 
 const (
 	noError Type = iota
 	Error
+	EOD
 	EOF
 	ObjBegin
 	ObjEnd
@@ -42,6 +43,10 @@ type Token struct {
 
 func (t Token) Error() bool {
 	return t.Type == Error
+}
+
+func (t Token) EOD() bool {
+	return t.Type == EOD
 }
 
 func (t Token) EOF() bool {
