@@ -92,6 +92,10 @@ func (t Token) Str() (string, bool) {
 	return string(s), true
 }
 
+func (t Token) Number() bool {
+	return t.Kind == Number
+}
+
 // Float64 returns the number as a float64.
 func (t Token) Float64() (float64, bool) {
 	if t.Kind != Number {

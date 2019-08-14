@@ -50,7 +50,7 @@ func (d *Decoder) string() Kind {
 					}
 					b = d.next()
 					switch {
-					case '0' >= b && b <= '9', 'A' >= b && b <= 'F', 'a' >= b && b <= 'f':
+					case '0' <= b && b <= '9', 'A' <= b && b <= 'F', 'a' <= b && b <= 'f':
 					default:
 						return d.error(b, "in \\u hexadecimal character escape")
 					}
@@ -149,6 +149,7 @@ func (x Token) Eq(t string) bool {
 					j++
 				}
 			}
+			continue
 		}
 		if c < utf8.RuneSelf {
 			if t[j] != c {

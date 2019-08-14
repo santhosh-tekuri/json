@@ -113,6 +113,7 @@ func (d *Decoder) token() Kind {
 			}
 			switch d.peek() {
 			case '}':
+				d.next()
 				d.stack = d.stack[:len(d.stack)-1]
 				return ObjEnd
 			default:
@@ -125,6 +126,7 @@ func (d *Decoder) token() Kind {
 				return d.unexpectedEOF()
 			}
 			if d.peek() == ']' {
+				d.next()
 				d.stack = d.stack[:len(d.stack)-1]
 				return ArrEnd
 			}
@@ -327,8 +329,15 @@ func (d *Decoder) error(c byte, context string) Kind {
 	return Error
 }
 
+var unexpectedEOF = "unexpected end of JSON input"
+
+func IsUnexpectedEOF(err error) bool {
+	e, ok := err.(*SyntaxError)
+	return ok && e.msg == unexpectedEOF
+}
+
 func (d *Decoder) unexpectedEOF() Kind {
-	d.err = &SyntaxError{"unexpected end of JSON input", int64(d.pos)}
+	d.err = &SyntaxError{unexpectedEOF, int64(d.pos)}
 	return Error
 }
 
