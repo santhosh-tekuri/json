@@ -296,7 +296,7 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 			m[key] = v
 		}
 	case ArrBegin:
-		a := []interface{}(nil)
+		a := make([]interface{}, 0)
 		for {
 			v, err := d.Unmarshal()
 			if err != nil {

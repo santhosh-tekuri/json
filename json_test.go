@@ -19,6 +19,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -200,7 +201,32 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-var v interface{}
+func TestDecoder_Unmarshal(t *testing.T) {
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range ff {
+		t.Run(filepath.Base(f), func(t *testing.T) {
+			doc, err := ioutil.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			de := json.NewDecoder(doc)
+			got, err := de.Unmarshal()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want interface{}
+			if err := gojson.Unmarshal(doc, &want); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Error("value does not match")
+			}
+		})
+	}
+}
 
 func TestNoAllocs(t *testing.T) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
@@ -242,31 +268,66 @@ func BenchmarkDecoder(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, f := range ff {
+		doc, err := ioutil.ReadFile(f)
+		if err != nil {
+			b.Fatal(err)
+		}
 		b.Run(filepath.Base(f), func(b *testing.B) {
-			doc, err := ioutil.ReadFile(f)
-			if err != nil {
-				b.Fatal(err)
+			de := json.NewDecoder(doc)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for {
+					t := de.Token()
+					if t.Error() {
+						b.Fatal(t.Err)
+					}
+					if t.EOF() {
+						break
+					}
+				}
+				de.Reset(doc)
 			}
-			benchmarkDecode(b, doc)
 		})
 	}
 }
 
-func benchmarkDecode(b *testing.B, doc []byte) {
-	de := json.NewDecoder(doc)
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for {
-			t := de.Token()
-			if t.Error() {
-				b.Fatal(t.Err)
-			}
-			if t.EOF() {
-				break
-			}
-		}
-		de.Reset(doc)
+func BenchmarkUnmarshal(b *testing.B) {
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		b.Fatal(err)
 	}
-
+	var v interface{}
+	for _, f := range ff {
+		doc, err := ioutil.ReadFile(f)
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Run(filepath.Base(f), func(b *testing.B) {
+			b.Run("mine", func(b *testing.B) {
+				de := json.NewDecoder(doc)
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					v, err = de.Unmarshal()
+					if err != nil {
+						b.Fatal(err)
+					}
+					de.Reset(doc)
+				}
+			})
+			b.Run("std", func(b *testing.B) {
+				v = nil
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					err = gojson.Unmarshal(doc, &v)
+					if err != nil {
+						b.Fatal(err)
+					}
+					v = nil
+				}
+			})
+		})
+	}
 }
