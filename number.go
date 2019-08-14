@@ -37,7 +37,7 @@ func (d *Decoder) number() Kind {
 	if d.hasMore() {
 		if d.peek() == '.' {
 			d.next()
-			if d.oneOrMoreDigits() == Error {
+			if d.oneOrMoreDigits("after decimal point in numeric literal") == Error {
 				return Error
 			}
 		}
@@ -51,7 +51,7 @@ func (d *Decoder) number() Kind {
 						d.next()
 					}
 				}
-				if d.oneOrMoreDigits() == Error {
+				if d.oneOrMoreDigits("in exponent of numeric literal") == Error {
 					return Error
 				}
 			}
@@ -71,13 +71,13 @@ func (d *Decoder) digits() {
 	}
 }
 
-func (d *Decoder) oneOrMoreDigits() Kind {
+func (d *Decoder) oneOrMoreDigits(context string) Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
 	b := d.next()
 	if !('0' <= b && b <= '9') {
-		return d.error(b, "in numeric literal")
+		return d.error(b, context)
 	}
 	d.digits()
 	return noError

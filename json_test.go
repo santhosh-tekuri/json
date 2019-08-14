@@ -45,6 +45,75 @@ func TestDecoder(t *testing.T) {
 		{"string_partial_escape2", `"this is message\`},
 		{"string_partial_hex1", `"this is message\u00`},
 		{"string_partial_hex2", `"this is message\u00"`},
+		{"number", `123`},
+		{"number_negative", `-123`},
+		{"number_starring_with_zero", `0123`},
+		{"number_valid01", "0"},
+		{"number_valid02", "-0"},
+		{"number_valid03", "1"},
+		{"number_valid04", "-1"},
+		{"number_valid05", "0.1"},
+		{"number_valid06", "-0.1"},
+		{"number_valid07", "1234"},
+		{"number_valid08", "-1234"},
+		{"number_valid09", "12.34"},
+		{"number_valid10", "-12.34"},
+		{"number_valid11", "12E0"},
+		{"number_valid12", "12E1"},
+		{"number_valid13", "12e34"},
+		{"number_valid14", "12E-0"},
+		{"number_valid15", "12e+1"},
+		{"number_valid16", "12e-34"},
+		{"number_valid17", "-12E0"},
+		{"number_valid18", "-12E1"},
+		{"number_valid19", "-12e34"},
+		{"number_valid20", "-12E-0"},
+		{"number_valid21", "-12e+1"},
+		{"number_valid22", "-12e-34"},
+		{"number_valid23", "1.2E0"},
+		{"number_valid24", "1.2E1"},
+		{"number_valid25", "1.2e34"},
+		{"number_valid26", "1.2E-0"},
+		{"number_valid27", "1.2e+1"},
+		{"number_valid28", "1.2e-34"},
+		{"number_valid29", "-1.2E0"},
+		{"number_valid30", "-1.2E1"},
+		{"number_valid31", "-1.2e34"},
+		{"number_valid32", "-1.2E-0"},
+		{"number_valid33", "-1.2e+1"},
+		{"number_valid34", "-1.2e-34"},
+		{"number_valid35", "0E0"},
+		{"number_valid36", "0E1"},
+		{"number_valid37", "0e34"},
+		{"number_valid38", "0E-0"},
+		{"number_valid39", "0e+1"},
+		{"number_valid40", "0e-34"},
+		{"number_valid41", "-0E0"},
+		{"number_valid42", "-0E1"},
+		{"number_valid43", "-0e34"},
+		{"number_valid44", "-0E-0"},
+		{"number_valid45", "-0e+1"},
+		{"number_valid46", "-0e-34"},
+		{"number_valid47", "-61657.61667E+61673"},
+		{"number_invalid01", `{"n":1.0.1}`},
+		{"number_invalid02", `{"n":1..1}`},
+		{"number_invalid03", `{"n":-1-2}`},
+		{"number_invalid04", `{"n":012a42}`},
+		{"number_invalid05", `{"n":01.2}`},
+		{"number_invalid06", `{"n":012}`},
+		{"number_invalid07", `{"n":12E12.12}`},
+		{"number_invalid08", `{"n":1e2e3}`},
+		{"number_invalid09", `{"n":1e+-2}`},
+		{"number_invalid10", `{"n":1e--23}`},
+		{"number_invalid11", `{"n":1e}`},
+		{"number_invalid12", `{"n":e1}`},
+		{"number_invalid13", `{"n":1e+}`},
+		{"number_invalid14", `{"n":1ea}`},
+		{"number_invalid15", `{"n":1a}`},
+		{"number_invalid16", `{"n":1.a}`},
+		{"number_invalid17", `{"n":1.}`},
+		{"number_invalid18", `{"n":01}`},
+		{"number_invalid19", `{"n":1.e1}`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,9 +121,13 @@ func TestDecoder(t *testing.T) {
 			gode := gojson.NewDecoder(strings.NewReader(tt.doc))
 			gode.UseNumber()
 			for {
-				gotok, goerr := gode.Token()
 				tok := de.Token()
-				//t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
+				// t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
+				if tok.EOD() {
+					tok = de.Token()
+					// t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
+				}
+				gotok, goerr := gode.Token()
 				switch {
 				case tok.Error():
 					if goerr == nil {
@@ -74,7 +147,7 @@ func TestDecoder(t *testing.T) {
 						t.Fatalf("error offset: got %d want %d", got, want)
 					}
 					return
-				case tok.EOD():
+				case tok.EOF():
 					if goerr != io.EOF {
 						t.Fatal()
 					}
@@ -101,8 +174,8 @@ func TestDecoder(t *testing.T) {
 						t.Fatal()
 					}
 				case tok.Number():
-					if s, ok := gotok.(string); !ok || s != string(tok.Data) {
-						t.Fatal()
+					if s, ok := gotok.(gojson.Number); !ok || string(s) != string(tok.Data) {
+						t.Fatalf("number: got %q want %q", string(tok.Data), s)
 					}
 				case tok.Kind == json.Boolean:
 					b, ok := tok.Bool()
