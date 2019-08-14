@@ -14,7 +14,7 @@
 
 package json
 
-func (d *Decoder) number() Type {
+func (d *Decoder) number() Kind {
 	d.mark = d.pos
 
 	// optional -
@@ -71,7 +71,7 @@ func (d *Decoder) digits() {
 	}
 }
 
-func (d *Decoder) oneOrMoreDigits() Type {
+func (d *Decoder) oneOrMoreDigits() Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}

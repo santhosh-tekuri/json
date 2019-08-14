@@ -20,7 +20,7 @@ import (
 	"unicode/utf8"
 )
 
-func (d *Decoder) string() Type {
+func (d *Decoder) string() Kind {
 	d.mark = d.pos
 	if !d.hasMore() {
 		return d.unexpectedEOF()

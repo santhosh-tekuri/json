@@ -16,10 +16,10 @@ package json
 
 import "strconv"
 
-type Type byte
+type Kind byte
 
 const (
-	noError Type = iota
+	noError Kind = iota
 	Error
 	EOD
 	EOF
@@ -29,56 +29,63 @@ const (
 	ArrEnd
 	String
 	Number
-	Null
 	Boolean
+	Null
 )
 
+var kindNames = []string{
+	`<continue>`,
+	`<error>`,
+	`<eod>`,
+	`<eof>`,
+	`'{'`, `'}'`, `'['`, `']'`,
+	`<string>`, `<number>`, `<boolean>`, `<null>`,
+}
+
+func (k Kind) String() string {
+	return kindNames[k]
+}
+
 type Token struct {
-	Type Type
+	Kind Kind
 	Data []byte
 	Err  error
 }
 
-// query token type ---
-
 func (t Token) Error() bool {
-	return t.Type == Error
+	return t.Kind == Error
 }
 
 func (t Token) EOD() bool {
-	return t.Type == EOD
+	return t.Kind == EOD
 }
 
 func (t Token) EOF() bool {
-	return t.Type == EOF
+	return t.Kind == EOF
 }
 
 func (t Token) Begin() bool {
-	return t.Type == ObjBegin || t.Type == ArrBegin
+	return t.Kind == ObjBegin || t.Kind == ArrBegin
 }
 
 func (t Token) End() bool {
-	return t.Type == ObjEnd || t.Type == ArrEnd
+	return t.Kind == ObjEnd || t.Kind == ArrEnd
 }
 
 func (t Token) Null() bool {
-	return t.Type == Null
+	return t.Kind == Null
 }
 
-// assert token type ---
-
 func (t Token) Obj() bool {
-	return t.Type == ObjBegin
+	return t.Kind == ObjBegin
 }
 
 func (t Token) Arr() bool {
-	return t.Type == ArrBegin
+	return t.Kind == ArrBegin
 }
 
-// assert type and extract data ---
-
 func (t Token) Str() (string, bool) {
-	if t.Type != String {
+	if t.Kind != String {
 		return "", false
 	}
 	s, _ := unquoteBytes(t.Data)
@@ -87,7 +94,7 @@ func (t Token) Str() (string, bool) {
 
 // Float64 returns the number as a float64.
 func (t Token) Float64() (float64, bool) {
-	if t.Type != Number {
+	if t.Kind != Number {
 		return 0, false
 	}
 	f, _ := strconv.ParseFloat(string(t.Data), 64)
@@ -96,7 +103,7 @@ func (t Token) Float64() (float64, bool) {
 
 // Int64 returns the number as an int64.
 func (t Token) Int64() (int64, bool) {
-	if t.Type != Number {
+	if t.Kind != Number {
 		return 0, false
 	}
 	i, _ := strconv.ParseInt(string(t.Data), 10, 64)
@@ -111,7 +118,7 @@ func (t Token) Int() (int, bool) {
 
 // Bool returns the boolean value.
 func (t Token) Bool() (bool, bool) {
-	if t.Type != Boolean {
+	if t.Kind != Boolean {
 		return false, false
 	}
 	return t.Data[0] == 't', true

@@ -57,7 +57,7 @@ func (d *Decoder) Token() Token {
 	}
 }
 
-func (d *Decoder) token() Type {
+func (d *Decoder) token() Kind {
 	d.whitespace()
 	if len(d.stack) > 0 {
 		s := d.stack[len(d.stack)-1]
@@ -133,7 +133,7 @@ func (d *Decoder) token() Type {
 	return d.value()
 }
 
-func (d *Decoder) value() Type {
+func (d *Decoder) value() Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
@@ -220,7 +220,7 @@ func (d *Decoder) next() byte {
 	return d.buf[d.pos-1]
 }
 
-func (d *Decoder) match(m byte, context string) Type {
+func (d *Decoder) match(m byte, context string) Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
@@ -262,7 +262,7 @@ func (d *Decoder) Skip() error {
 
 func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	t := d.Token()
-	switch t.Type {
+	switch t.Kind {
 	case Error:
 		return nil, t.Err
 	case Null:
@@ -283,7 +283,7 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 			if t.Error() {
 				return nil, t.Err
 			}
-			if t.Type == ObjEnd {
+			if t.Kind == ObjEnd {
 				return m, nil
 			}
 			key, _ := t.Str()
@@ -322,12 +322,12 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string { return e.msg }
 
-func (d *Decoder) error(c byte, context string) Type {
+func (d *Decoder) error(c byte, context string) Kind {
 	d.err = &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)}
 	return Error
 }
 
-func (d *Decoder) unexpectedEOF() Type {
+func (d *Decoder) unexpectedEOF() Kind {
 	d.err = &SyntaxError{"unexpected end of JSON input", int64(d.pos)}
 	return Error
 }
