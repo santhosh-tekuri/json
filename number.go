@@ -14,41 +14,50 @@
 
 package json
 
-func (d *Decoder) number() Token {
+func (d *Decoder) number() Type {
 	d.mark = d.pos
 
 	// optional -
-	if d.peek() == '-' {
+	if d.hasMore() && d.peek() == '-' {
 		d.next()
 	}
 
 	// digits
+	if !d.hasMore() {
+		return d.unexpectedEOF()
+	}
 	b := d.next()
 	switch {
 	case b == '0':
 	case '1' <= b && b <= '9':
 		d.digits()
 	default:
-		panic(d.error(b, "in numeric literal"))
+		return d.error(b, "in numeric literal")
 	}
 	if d.hasMore() {
 		if d.peek() == '.' {
 			d.next()
-			d.oneOrMoreDigits()
+			if d.oneOrMoreDigits() == Error {
+				return Error
+			}
 		}
 		if d.hasMore() {
 			p := d.peek()
 			if p == 'e' || p == 'E' {
 				d.next()
-				p = d.peek()
-				if p == '+' || p == '-' {
-					d.next()
+				if d.hasMore() {
+					p = d.peek()
+					if p == '+' || p == '-' {
+						d.next()
+					}
 				}
-				d.oneOrMoreDigits()
+				if d.oneOrMoreDigits() == Error {
+					return Error
+				}
 			}
 		}
 	}
-	return d.token(Number)
+	return Number
 }
 
 func (d *Decoder) digits() {
@@ -62,10 +71,14 @@ func (d *Decoder) digits() {
 	}
 }
 
-func (d *Decoder) oneOrMoreDigits() {
+func (d *Decoder) oneOrMoreDigits() Type {
+	if !d.hasMore() {
+		return d.unexpectedEOF()
+	}
 	b := d.next()
 	if !('0' <= b && b <= '9') {
-		panic(d.error(b, "in numeric literal"))
+		return d.error(b, "in numeric literal")
 	}
 	d.digits()
+	return noError
 }

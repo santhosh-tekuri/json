@@ -20,34 +20,46 @@ import (
 	"unicode/utf8"
 )
 
-func (d *Decoder) string() Token {
+func (d *Decoder) string() Type {
 	d.mark = d.pos
+	if !d.hasMore() {
+		return d.unexpectedEOF()
+	}
 	if b := d.next(); b != '"' {
-		panic(d.error(b, "looking for beginning of object key string"))
+		return d.error(b, "looking for beginning of object key string")
 	}
 	for {
+		if !d.hasMore() {
+			return d.unexpectedEOF()
+		}
 		b := d.next()
 		switch {
 		case b == '"':
-			return d.token(String)
+			return String
 		case b == '\\':
+			if !d.hasMore() {
+				return d.unexpectedEOF()
+			}
 			b = d.next()
 			switch b {
 			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
 			case 'u':
 				for i := 0; i < 4; i++ {
+					if !d.hasMore() {
+						return d.unexpectedEOF()
+					}
 					b = d.next()
 					switch {
 					case '0' >= b && b <= '9', 'A' >= b && b <= 'F', 'a' >= b && b <= 'f':
 					default:
-						panic(d.error(b, "in \\u hexadecimal character escape"))
+						return d.error(b, "in \\u hexadecimal character escape")
 					}
 				}
 			default:
-				panic(d.error(b, "in string escape code"))
+				return d.error(b, "in string escape code")
 			}
 		case b < 0x20:
-			panic(d.error(b, "in string literal"))
+			return d.error(b, "in string literal")
 		}
 	}
 }

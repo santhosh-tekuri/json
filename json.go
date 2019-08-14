@@ -15,7 +15,6 @@
 package json
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -25,6 +24,7 @@ type Decoder struct {
 	pos   int
 	stack []byte
 	mark  int
+	err   error
 }
 
 func NewDecoder(b []byte) *Decoder {
@@ -35,7 +35,9 @@ func (d *Decoder) Reset(b []byte) {
 	d.buf, d.pos, d.stack = b, 0, d.stack[:0]
 }
 
-func (d *Decoder) token(t Type) Token {
+func (d *Decoder) Token() Token {
+	d.err, d.mark = nil, -1
+	t := d.token()
 	if len(d.stack) > 0 {
 		s := d.stack[len(d.stack)-1]
 		if s == '{' || s == '[' {
@@ -49,25 +51,30 @@ func (d *Decoder) token(t Type) Token {
 	}
 	switch t {
 	case String, Number, Boolean:
-		return Token{t, d.buf[d.mark:d.pos]}
+		return Token{t, d.buf[d.mark:d.pos], d.err}
 	default:
-		return Token{t, nil}
+		return Token{t, nil, d.err}
 	}
 }
 
-func (d *Decoder) Token() Token {
+func (d *Decoder) token() Type {
 	d.whitespace()
 	if len(d.stack) > 0 {
 		s := d.stack[len(d.stack)-1]
 		switch s {
 		case 0:
-			return d.token(EOF)
+			return EOF
 		case ':':
 			d.stack = d.stack[:len(d.stack)-1]
-			d.match(':', "after object key")
+			if d.match(':', "after object key") == Error {
+				return Error
+			}
 			d.whitespace()
 		case ',':
 			d.stack = d.stack[:len(d.stack)-1]
+			if !d.hasMore() {
+				return d.unexpectedEOF()
+			}
 			if d.peek() == ',' {
 				d.next()
 				d.whitespace()
@@ -80,76 +87,116 @@ func (d *Decoder) Token() Token {
 			} else {
 				s := d.stack[len(d.stack)-1]
 				if s == '{' {
-					d.match('}', "after object key:value pair")
+					if d.match('}', "after object key:value pair") == Error {
+						return Error
+					}
 					d.stack = d.stack[:len(d.stack)-1]
-					return d.token(ObjEnd)
+					return ObjEnd
 				} else if s == '[' {
-					d.match(']', "after array element")
+					if d.match(']', "after array element") == Error {
+						return Error
+					}
 					d.stack = d.stack[:len(d.stack)-1]
-					return d.token(ArrEnd)
+					return ArrEnd
 				}
 			}
 		case '{':
+			if !d.hasMore() {
+				return d.unexpectedEOF()
+			}
 			switch d.peek() {
 			case '}':
 				d.stack = d.stack[:len(d.stack)-1]
-				return d.token(ObjEnd)
+				return ObjEnd
 			default:
 				t := d.string()
 				d.stack = append(d.stack, ':')
 				return t
 			}
 		case '[':
-			switch d.peek() {
-			case ']':
+			if !d.hasMore() {
+				return d.unexpectedEOF()
+			}
+			if d.peek() == ']' {
 				d.stack = d.stack[:len(d.stack)-1]
-				return d.token(ArrEnd)
+				return ArrEnd
 			}
 		}
 	}
 	return d.value()
 }
 
-func (d *Decoder) value() Token {
+func (d *Decoder) value() Type {
+	if !d.hasMore() {
+		return d.unexpectedEOF()
+	}
 	switch d.peek() {
 	case '{':
 		d.stack = append(d.stack, '{')
 		d.next()
-		return d.token(ObjBegin)
+		return ObjBegin
 	case '[':
 		d.stack = append(d.stack, '[')
 		d.next()
-		return d.token(ArrBegin)
+		return ArrBegin
 	case '"':
-		t := d.string()
-		return t
+		return d.string()
 	case 'n':
-		d.match('n', "in literal null")
-		d.match('u', "in literal null")
-		d.match('l', "in literal null")
-		d.match('l', "in literal null")
-		return d.token(Null)
+		if d.match('n', "in literal null") == Error {
+			return Error
+		}
+		if d.match('u', "in literal null") == Error {
+			return Error
+		}
+		if d.match('l', "in literal null") == Error {
+			return Error
+		}
+		if d.match('l', "in literal null") == Error {
+			return Error
+		}
+		return Null
 	case 't':
 		d.mark = d.pos
-		d.match('t', "in literal true")
-		d.match('r', "in literal true")
-		d.match('u', "in literal true")
-		d.match('e', "in literal true")
-		return d.token(Boolean)
+		if d.match('t', "in literal true") == Error {
+			return Error
+		}
+		if d.match('r', "in literal true") == Error {
+			return Error
+		}
+		if d.match('u', "in literal true") == Error {
+			return Error
+		}
+		if d.match('e', "in literal true") == Error {
+			return Error
+		}
+		return Boolean
 	case 'f':
 		d.mark = d.pos
-		d.match('f', "in literal false")
-		d.match('a', "in literal false")
-		d.match('l', "in literal false")
-		d.match('s', "in literal false")
-		d.match('e', "in literal false")
-		return d.token(Boolean)
+		if d.match('f', "in literal false") == Error {
+			return Error
+		}
+		if d.match('a', "in literal false") == Error {
+			return Error
+		}
+		if d.match('l', "in literal false") == Error {
+			return Error
+		}
+		if d.match('s', "in literal false") == Error {
+			return Error
+		}
+		if d.match('e', "in literal false") == Error {
+			return Error
+		}
+		return Boolean
 	default:
+		if !d.hasMore() {
+			return d.unexpectedEOF()
+		}
 		p := d.peek()
 		if p == '-' || ('0' <= p && p <= '9') {
 			return d.number()
 		}
-		panic(d.error(d.peek(), "looking for beginning of value"))
+		return d.error(d.peek(), "looking for beginning of value")
 	}
 }
 
@@ -158,24 +205,22 @@ func (d *Decoder) hasMore() bool {
 }
 
 func (d *Decoder) peek() byte {
-	if !d.hasMore() {
-		panic(&SyntaxError{"unexpected end of JSON input", int64(d.pos)})
-	}
 	return d.buf[d.pos]
 }
 
 func (d *Decoder) next() byte {
-	if !d.hasMore() {
-		panic(&SyntaxError{"unexpected end of JSON input", int64(d.pos)})
-	}
 	d.pos++
 	return d.buf[d.pos-1]
 }
 
-func (d *Decoder) match(m byte, context string) {
-	if b := d.next(); b != m {
-		panic(d.error(b, context))
+func (d *Decoder) match(m byte, context string) Type {
+	if !d.hasMore() {
+		return d.unexpectedEOF()
 	}
+	if b := d.next(); b != m {
+		return d.error(b, context)
+	}
+	return noError
 }
 
 func (d *Decoder) whitespace() {
@@ -188,18 +233,20 @@ func (d *Decoder) whitespace() {
 	}
 }
 
-func (d *Decoder) Skip() {
+func (d *Decoder) Skip() error {
 	c := 0
 	for {
 		t := d.Token()
 		switch {
+		case t.Error():
+			return t.Err
 		case t.Begin():
 			c++
 		case t.End():
 			c--
 		}
 		if c == 0 {
-			break
+			return nil
 		}
 	}
 }
@@ -207,51 +254,54 @@ func (d *Decoder) Skip() {
 // unmarshalling ---
 
 func (d *Decoder) Unmarshal() (v interface{}, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(*SyntaxError); ok {
-				err = e
-			} else {
-				err = errors.New(r.(string)) // todo re-panic
-			}
-		}
-	}()
-	return d.unmarshal(), nil
-}
-
-func (d *Decoder) unmarshal() interface{} {
 	t := d.Token()
 	switch t.Type {
+	case Error:
+		return nil, t.Err
 	case Null:
-		return nil
+		return nil, nil
 	case String:
-		return t.Str()
+		s, _ := t.Str()
+		return s, nil
 	case Number:
-		return t.Float64()
+		f, _ := t.Float64()
+		return f, nil
 	case Boolean:
-		return t.Bool()
+		b, _ := t.Bool()
+		return b, nil
 	case ObjBegin:
 		m := make(map[string]interface{})
 		for {
 			t = d.Token()
-			if t.Type == ObjEnd {
-				return m
+			if t.Error() {
+				return nil, t.Err
 			}
-			m[t.Str()] = d.unmarshal()
+			if t.Type == ObjEnd {
+				return m, nil
+			}
+			key, _ := t.Str()
+			v, err := d.Unmarshal()
+			if err != nil {
+				return nil, err
+			}
+			m[key] = v
 		}
 	case ArrBegin:
 		a := []interface{}(nil)
 		for {
-			v := d.unmarshal()
+			v, err := d.Unmarshal()
+			if err != nil {
+				return nil, err
+			}
 			if v == ArrEnd {
-				return a
+				return a, nil
 			}
 			a = append(a, v)
 		}
 	case ArrEnd:
-		return ArrEnd
+		return ArrEnd, nil
 	default:
-		panic(fmt.Sprintln("got", t))
+		panic(fmt.Sprintln("BUG: got", t))
 	}
 }
 
@@ -265,8 +315,14 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string { return e.msg }
 
-func (d *Decoder) error(c byte, context string) error {
-	return &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)}
+func (d *Decoder) error(c byte, context string) Type {
+	d.err = &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)}
+	return Error
+}
+
+func (d *Decoder) unexpectedEOF() Type {
+	d.err = &SyntaxError{"unexpected end of JSON input", int64(d.pos)}
+	return Error
 }
 
 // quoteChar formats c as a quoted character literal

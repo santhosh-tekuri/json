@@ -19,7 +19,9 @@ import "strconv"
 type Type int
 
 const (
-	EOF Type = iota + 1
+	noError Type = iota
+	Error
+	EOF
 	ObjBegin
 	ObjEnd
 	ArrBegin
@@ -33,9 +35,18 @@ const (
 type Token struct {
 	Type Type
 	Data []byte
+	Err  error
 }
 
 // query token type ---
+
+func (t Token) Error() bool {
+	return t.Type == Error
+}
+
+func (t Token) EOF() bool {
+	return t.Type == EOF
+}
 
 func (t Token) Begin() bool {
 	return t.Type == ObjBegin || t.Type == ArrBegin
@@ -51,58 +62,52 @@ func (t Token) Null() bool {
 
 // assert token type ---
 
-func (t Token) Obj() {
-	if t.Type != ObjBegin {
-		panic("expected object")
-	}
+func (t Token) Obj() bool {
+	return t.Type == ObjBegin
 }
 
-func (t Token) Arr() {
-	if t.Type != ArrBegin {
-		panic("expected array")
-	}
+func (t Token) Arr() bool {
+	return t.Type == ArrBegin
 }
 
 // assert type and extract data ---
 
-func (t Token) Str() string {
+func (t Token) Str() (string, bool) {
 	if t.Type != String {
-		panic("expected string")
+		return "", false
 	}
 	s, _ := unquoteBytes(t.Data)
-	return string(s)
+	return string(s), true
 }
 
 // Float64 returns the number as a float64.
-func (t Token) Float64() float64 {
+func (t Token) Float64() (float64, bool) {
 	if t.Type != Number {
-		panic("expected number")
+		return 0, false
 	}
 	f, _ := strconv.ParseFloat(string(t.Data), 64)
-	return f
+	return f, true
 }
 
 // Int64 returns the number as an int64.
-func (t Token) Int64() int64 {
+func (t Token) Int64() (int64, bool) {
 	if t.Type != Number {
-		panic("expected number")
+		return 0, false
 	}
 	i, _ := strconv.ParseInt(string(t.Data), 10, 64)
-	return i
+	return i, true
 }
 
 // Int returns the number as an int.
-func (t Token) Int() int {
-	if t.Type != Number {
-		panic("expected number")
-	}
-	return int(t.Int64())
+func (t Token) Int() (int, bool) {
+	i, ok := t.Int64()
+	return int(i), ok
 }
 
 // Bool returns the boolean value.
-func (t Token) Bool() bool {
+func (t Token) Bool() (bool, bool) {
 	if t.Type != Boolean {
-		panic("boolean expected")
+		return false, false
 	}
-	return t.Data[0] == 't'
+	return t.Data[0] == 't', true
 }
