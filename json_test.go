@@ -17,6 +17,9 @@ package json_test
 import (
 	gojson "encoding/json"
 	"io"
+	"io/ioutil"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -195,4 +198,75 @@ func TestDecoder(t *testing.T) {
 			}
 		})
 	}
+}
+
+var v interface{}
+
+func TestNoAllocs(t *testing.T) {
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range ff {
+		t.Run(filepath.Base(f), func(t *testing.T) {
+			doc, err := ioutil.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			de := json.NewDecoder(doc)
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
+			allocs := memStats.Mallocs
+
+			for {
+				tok := de.Token()
+				if tok.Error() {
+					t.Fatal(tok.Err)
+				}
+				if tok.EOF() {
+					break
+				}
+			}
+
+			runtime.ReadMemStats(&memStats)
+			if d := memStats.Mallocs - allocs; d != 0 {
+				t.Fatalf("%d allocs detected", d)
+			}
+		})
+	}
+}
+
+func BenchmarkDecoder(b *testing.B) {
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		b.Fatal(err)
+	}
+	for _, f := range ff {
+		b.Run(filepath.Base(f), func(b *testing.B) {
+			doc, err := ioutil.ReadFile(f)
+			if err != nil {
+				b.Fatal(err)
+			}
+			benchmarkDecode(b, doc)
+		})
+	}
+}
+
+func benchmarkDecode(b *testing.B, doc []byte) {
+	de := json.NewDecoder(doc)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for {
+			t := de.Token()
+			if t.Error() {
+				b.Fatal(t.Err)
+			}
+			if t.EOF() {
+				break
+			}
+		}
+		de.Reset(doc)
+	}
+
 }
