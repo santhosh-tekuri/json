@@ -74,10 +74,10 @@ func (d *Decoder) Token() Token {
 		}
 	} else {
 		s := d.stack[len(d.stack)-1]
+		if d.pos == len(d.buf) {
+			return d.unexpectedEOF()
+		}
 		if d.comma {
-			if d.pos == len(d.buf) {
-				return d.unexpectedEOF()
-			}
 			if d.buf[d.pos] != ',' {
 				if s == '{' {
 					if !d.match('}') {
@@ -106,9 +106,6 @@ func (d *Decoder) Token() Token {
 			d.comma = true
 			switch s {
 			case '{':
-				if d.pos == len(d.buf) {
-					return d.unexpectedEOF()
-				}
 				switch d.buf[d.pos] {
 				case '}':
 					d.pos++
@@ -120,9 +117,6 @@ func (d *Decoder) Token() Token {
 					return t
 				}
 			case '[':
-				if d.pos == len(d.buf) {
-					return d.unexpectedEOF()
-				}
 				if d.buf[d.pos] == ']' {
 					d.pos++
 					d.stack = d.stack[:len(d.stack)-1]
