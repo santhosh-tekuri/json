@@ -80,15 +80,17 @@ func (d *Decoder) Token() Token {
 		if d.comma {
 			if d.buf[d.pos] != ',' {
 				if s == '{' {
-					if !d.match('}') {
+					if d.buf[d.pos] != '}' {
 						return d.error("after object key:value pair")
 					}
+					d.pos++
 					d.stack = d.stack[:len(d.stack)-1]
 					return Token{Kind: ObjEnd}
 				} else if s == '[' {
-					if !d.match(']') {
+					if d.buf[d.pos] != ']' {
 						return d.error("after array element")
 					}
+					d.pos++
 					d.stack = d.stack[:len(d.stack)-1]
 					return Token{Kind: ArrEnd}
 				}
