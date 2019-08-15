@@ -197,9 +197,6 @@ func (d *Decoder) Token() Token {
 		}
 		return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
 	default:
-		if !d.hasMore() {
-			return d.unexpectedEOF()
-		}
 		p := d.buf[d.pos]
 		if p == '-' || ('0' <= p && p <= '9') {
 			return d.number()
