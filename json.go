@@ -67,7 +67,7 @@ func (d *Decoder) Token() Token {
 			d.empty = EOF
 			return Token{Kind: EOD}
 		case EOF:
-			if !d.hasMore() {
+			if d.pos == len(d.buf) {
 				return Token{Kind: EOF}
 			}
 			d.empty = EOD
@@ -75,7 +75,7 @@ func (d *Decoder) Token() Token {
 	} else {
 		s := d.stack[len(d.stack)-1]
 		if d.comma {
-			if !d.hasMore() {
+			if d.pos == len(d.buf) {
 				return d.unexpectedEOF()
 			}
 			if d.buf[d.pos] != ',' {
@@ -106,7 +106,7 @@ func (d *Decoder) Token() Token {
 			d.comma = true
 			switch s {
 			case '{':
-				if !d.hasMore() {
+				if d.pos == len(d.buf) {
 					return d.unexpectedEOF()
 				}
 				switch d.buf[d.pos] {
@@ -120,7 +120,7 @@ func (d *Decoder) Token() Token {
 					return t
 				}
 			case '[':
-				if !d.hasMore() {
+				if d.pos == len(d.buf) {
 					return d.unexpectedEOF()
 				}
 				if d.buf[d.pos] == ']' {
@@ -133,7 +133,7 @@ func (d *Decoder) Token() Token {
 	}
 
 	// read value ---
-	if !d.hasMore() {
+	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
 	switch d.buf[d.pos] {
@@ -178,12 +178,8 @@ func (d *Decoder) Token() Token {
 	}
 }
 
-func (d *Decoder) hasMore() bool {
-	return d.pos < len(d.buf)
-}
-
 func (d *Decoder) match(m byte) bool {
-	if d.hasMore() && d.buf[d.pos] == m {
+	if d.pos < len(d.buf) && d.buf[d.pos] == m {
 		d.pos++
 		return true
 	}
@@ -191,7 +187,7 @@ func (d *Decoder) match(m byte) bool {
 }
 
 func (d *Decoder) whitespace() {
-	for d.hasMore() {
+	for d.pos < len(d.buf) {
 		if p := d.buf[d.pos]; p == ' ' || p == '\t' || p == '\r' || p == '\n' {
 			d.pos++
 		} else {

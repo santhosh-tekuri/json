@@ -22,7 +22,7 @@ import (
 
 func (d *Decoder) string() Token {
 	d.mark = d.pos
-	if !d.hasMore() {
+	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
 	if b := d.buf[d.pos]; b != '"' {
@@ -30,7 +30,7 @@ func (d *Decoder) string() Token {
 	}
 	d.pos++
 	for {
-		if !d.hasMore() {
+		if d.pos == len(d.buf) {
 			return d.unexpectedEOF()
 		}
 		b := d.buf[d.pos]
@@ -40,7 +40,7 @@ func (d *Decoder) string() Token {
 			return Token{Kind: String, Data: d.buf[d.mark:d.pos]}
 		case b == '\\':
 			d.pos++
-			if !d.hasMore() {
+			if d.pos == len(d.buf) {
 				return d.unexpectedEOF()
 			}
 			b = d.buf[d.pos]
@@ -50,7 +50,7 @@ func (d *Decoder) string() Token {
 			case 'u':
 				d.pos++
 				for i := 0; i < 4; i++ {
-					if !d.hasMore() {
+					if d.pos == len(d.buf) {
 						return d.unexpectedEOF()
 					}
 					b = d.buf[d.pos]

@@ -18,12 +18,12 @@ func (d *Decoder) number() Token {
 	d.mark = d.pos
 
 	// optional -
-	if d.hasMore() && d.buf[d.pos] == '-' {
+	if d.pos < len(d.buf) && d.buf[d.pos] == '-' {
 		d.pos++
 	}
 
 	// digits
-	if !d.hasMore() {
+	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
 	b := d.buf[d.pos]
@@ -36,18 +36,18 @@ func (d *Decoder) number() Token {
 	default:
 		return d.error("in numeric literal")
 	}
-	if d.hasMore() {
+	if d.pos < len(d.buf) {
 		if d.buf[d.pos] == '.' {
 			d.pos++
 			if t := d.oneOrMoreDigits("after decimal point in numeric literal"); t.Kind == Error {
 				return t
 			}
 		}
-		if d.hasMore() {
+		if d.pos < len(d.buf) {
 			p := d.buf[d.pos]
 			if p == 'e' || p == 'E' {
 				d.pos++
-				if d.hasMore() {
+				if d.pos < len(d.buf) {
 					p = d.buf[d.pos]
 					if p == '+' || p == '-' {
 						d.pos++
@@ -63,7 +63,7 @@ func (d *Decoder) number() Token {
 }
 
 func (d *Decoder) digits() {
-	for d.hasMore() {
+	for d.pos < len(d.buf) {
 		p := d.buf[d.pos]
 		if '0' <= p && p <= '9' {
 			d.pos++
@@ -74,7 +74,7 @@ func (d *Decoder) digits() {
 }
 
 func (d *Decoder) oneOrMoreDigits(context string) Token {
-	if !d.hasMore() {
+	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
 	b := d.buf[d.pos]
