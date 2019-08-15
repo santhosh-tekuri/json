@@ -34,12 +34,11 @@ const (
 )
 
 var kindNames = []string{
-	`<continue>`,
-	`<error>`,
-	`<eod>`,
-	`<eof>`,
+	`<none>`,
+	`<eod>`, `<eof>`,
 	`'{'`, `'}'`, `'['`, `']'`,
 	`<string>`, `<number>`, `<boolean>`, `<null>`,
+	`<error>`,
 }
 
 func (k Kind) String() string {
