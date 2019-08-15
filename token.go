@@ -14,7 +14,10 @@
 
 package json
 
-import "strconv"
+import (
+	"errors"
+	"strconv"
+)
 
 type Kind byte
 
@@ -75,54 +78,93 @@ func (t Token) Null() bool {
 	return t.Kind == Null
 }
 
-func (t Token) Obj() bool {
-	return t.Kind == ObjBegin
-}
-
-func (t Token) Arr() bool {
-	return t.Kind == ArrBegin
-}
-
-func (t Token) Str() (string, bool) {
-	if t.Kind != String {
-		return "", false
+func (t Token) Obj(context string) error {
+	switch t.Kind {
+	case Error:
+		return t.Err
+	case ObjBegin:
+		return nil
+	default:
+		return errors.New(context + " expects object")
 	}
-	s, _ := unquoteBytes(t.Data)
-	return string(s), true
 }
 
-func (t Token) Number() bool {
-	return t.Kind == Number
+func (t Token) Arr(context string) error {
+	switch t.Kind {
+	case Error:
+		return t.Err
+	case ArrBegin:
+		return nil
+	default:
+		return errors.New(context + " expects array")
+	}
+}
+
+func (t Token) Str(context string) (string, error) {
+	switch t.Kind {
+	case Error:
+		return "", t.Err
+	case String:
+		s, _ := unquoteBytes(t.Data)
+		return string(s), nil
+	default:
+		return "", errors.New(context + " expects string")
+	}
+}
+
+func (t Token) Number(context string) (string, error) {
+	switch t.Kind {
+	case Error:
+		return "", t.Err
+	case Number:
+		return string(t.Data), nil
+	default:
+		return "", errors.New(context + " expects number")
+	}
 }
 
 // Float64 returns the number as a float64.
-func (t Token) Float64() (float64, bool) {
-	if t.Kind != Number {
-		return 0, false
+func (t Token) Float64(context string) (float64, error) {
+	switch t.Kind {
+	case Error:
+		return 0, t.Err
+	case Number:
+		return strconv.ParseFloat(string(t.Data), 64)
+	default:
+		return 0, errors.New(context + " expects number")
 	}
-	f, _ := strconv.ParseFloat(string(t.Data), 64)
-	return f, true
 }
 
 // Int64 returns the number as an int64.
-func (t Token) Int64() (int64, bool) {
-	if t.Kind != Number {
-		return 0, false
+func (t Token) Int64(context string) (int64, error) {
+	switch t.Kind {
+	case Error:
+		return 0, t.Err
+	case Number:
+		i, err := strconv.ParseInt(string(t.Data), 10, 64)
+		if err != nil {
+			return 0, errors.New(context + " expects integer")
+		}
+		return i, nil
+	default:
+		return 0, errors.New(context + " expects integer")
 	}
-	i, _ := strconv.ParseInt(string(t.Data), 10, 64)
-	return i, true
 }
 
 // Int returns the number as an int.
-func (t Token) Int() (int, bool) {
-	i, ok := t.Int64()
-	return int(i), ok
+func (t Token) Int(context string) (int, error) {
+	i, err := t.Int64(context)
+	return int(i), err
 }
 
 // Bool returns the boolean value.
-func (t Token) Bool() (bool, bool) {
-	if t.Kind != Boolean {
-		return false, false
+func (t Token) Bool(context string) (bool, error) {
+	switch t.Kind {
+	case Error:
+		return false, t.Err
+	case Boolean:
+		return t.Data[0] == 't', nil
+	default:
+		return false, errors.New(context + " expects boolean")
 	}
-	return t.Data[0] == 't', true
 }

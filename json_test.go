@@ -139,8 +139,8 @@ func TestDecoder(t *testing.T) {
 					// t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
 				}
 				gotok, goerr := gode.Token()
-				switch {
-				case tok.Error():
+				switch tok.Kind {
+				case json.Error:
 					if goerr == nil {
 						t.Fatal(tok.Err)
 					}
@@ -158,45 +158,42 @@ func TestDecoder(t *testing.T) {
 						t.Fatalf("error offset: got %d want %d", got, want)
 					}
 					return
-				case tok.EOF():
+				case json.EOF:
 					if goerr != io.EOF {
 						t.Fatal()
 					}
 					return
-				case tok.Obj():
+				case json.ObjBegin:
 					if gotok != gojson.Delim('{') {
 						t.Fatal(gotok)
 					}
-				case tok.Kind == json.ObjEnd:
+				case json.ObjEnd:
 					if gotok != gojson.Delim('}') {
 						t.Fatal()
 					}
-				case tok.Arr():
+				case json.ArrBegin:
 					if gotok != gojson.Delim('[') {
 						t.Fatal()
 					}
-				case tok.Kind == json.ArrEnd:
+				case json.ArrEnd:
 					if gotok != gojson.Delim(']') {
 						t.Fatal()
 					}
-				case tok.Kind == json.String:
+				case json.String:
 					if s, ok := gotok.(string); !ok || !tok.Eq(s) {
 						tok.Eq(s)
 						t.Fatal()
 					}
-				case tok.Number():
+				case json.Number:
 					if s, ok := gotok.(gojson.Number); !ok || string(s) != string(tok.Data) {
 						t.Fatalf("number: got %q want %q", string(tok.Data), s)
 					}
-				case tok.Kind == json.Boolean:
-					b, ok := tok.Bool()
-					if !ok {
-						t.Fatal()
-					}
+				case json.Boolean:
+					b, _ := tok.Bool("")
 					if b1, ok := gotok.(bool); !ok || b != b1 {
 						t.Fatal()
 					}
-				case tok.Null():
+				case json.Null:
 					if gotok != nil {
 						t.Fatal()
 					}

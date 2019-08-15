@@ -27,6 +27,7 @@ type Decoder struct {
 	empty Kind // tells action to take when stack is empty
 	comma bool // if comma && stack.peek is '{' or '[' then read ','
 	colon bool // if true read ':'
+	peek  Token
 }
 
 func NewDecoder(b []byte) *Decoder {
@@ -37,7 +38,19 @@ func (d *Decoder) Reset(b []byte) {
 	d.buf, d.pos, d.stack, d.empty, d.comma, d.colon = b, 0, d.stack[:0], none, true, false
 }
 
+func (d *Decoder) Peek() Token {
+	if d.peek.Kind == none {
+		d.peek = d.Token()
+	}
+	return d.peek
+}
+
 func (d *Decoder) Token() Token {
+	if d.peek.Kind != none {
+		t := d.peek
+		d.peek = Token{}
+		return t
+	}
 	d.mark = -1
 	d.whitespace()
 	if d.colon {
@@ -248,13 +261,13 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	case Null:
 		return nil, nil
 	case String:
-		s, _ := t.Str()
+		s, _ := t.Str("")
 		return s, nil
 	case Number:
-		f, _ := t.Float64()
+		f, _ := t.Float64("")
 		return f, nil
 	case Boolean:
-		b, _ := t.Bool()
+		b, _ := t.Bool("")
 		return b, nil
 	case ObjBegin:
 		m := make(map[string]interface{})
@@ -266,7 +279,7 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 			if t.Kind == ObjEnd {
 				return m, nil
 			}
-			key, _ := t.Str()
+			key, _ := t.Str("")
 			v, err := d.Unmarshal()
 			if err != nil {
 				return nil, err
@@ -292,7 +305,43 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	}
 }
 
-// ---
+type PropUnmarshaller func(de *Decoder, prop Token) error
+
+func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
+	if err := d.Token().Obj(context); err != nil {
+		return err
+	}
+	var err error
+	for {
+		t := d.Token()
+		switch {
+		case t.Error():
+			return t.Err
+		case t.End():
+			return nil
+		default:
+			if err = f(d, t); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+type ArrUnmarshaller func(de *Decoder) error
+
+func (d *Decoder) UnmarshalArr(context string, f ArrUnmarshaller) error {
+	if err := d.Token().Arr(context); err != nil {
+		return err
+	}
+	for !d.Peek().End() {
+		if err := f(d); err != nil {
+			return err
+		}
+	}
+	return d.Token().Err
+}
+
+// errors ---
 
 // A SyntaxError is a description of a JSON syntax error.
 type SyntaxError struct {
