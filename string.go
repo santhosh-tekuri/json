@@ -25,32 +25,38 @@ func (d *Decoder) string() Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
-	if b := d.next(); b != '"' {
+	if b := d.buf[d.pos]; b != '"' {
 		return d.error(b, "looking for beginning of object key string")
 	}
+	d.pos++
 	for {
 		if !d.hasMore() {
 			return d.unexpectedEOF()
 		}
-		b := d.next()
+		b := d.buf[d.pos]
 		switch {
 		case b == '"':
+			d.pos++
 			return String
 		case b == '\\':
+			d.pos++
 			if !d.hasMore() {
 				return d.unexpectedEOF()
 			}
-			b = d.next()
+			b = d.buf[d.pos]
 			switch b {
 			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
+				d.pos++
 			case 'u':
+				d.pos++
 				for i := 0; i < 4; i++ {
 					if !d.hasMore() {
 						return d.unexpectedEOF()
 					}
-					b = d.next()
+					b = d.buf[d.pos]
 					switch {
 					case '0' <= b && b <= '9', 'A' <= b && b <= 'F', 'a' <= b && b <= 'f':
+						d.pos++
 					default:
 						return d.error(b, "in \\u hexadecimal character escape")
 					}
@@ -60,6 +66,8 @@ func (d *Decoder) string() Kind {
 			}
 		case b < 0x20:
 			return d.error(b, "in string literal")
+		default:
+			d.pos++
 		}
 	}
 }

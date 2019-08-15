@@ -82,8 +82,8 @@ func (d *Decoder) token() Kind {
 			if !d.hasMore() {
 				return d.unexpectedEOF()
 			}
-			if d.peek() == ',' {
-				d.next()
+			if d.buf[d.pos] == ',' {
+				d.pos++
 				d.whitespace()
 				s := d.stack[len(d.stack)-1]
 				if s == '{' {
@@ -111,9 +111,9 @@ func (d *Decoder) token() Kind {
 			if !d.hasMore() {
 				return d.unexpectedEOF()
 			}
-			switch d.peek() {
+			switch d.buf[d.pos] {
 			case '}':
-				d.next()
+				d.pos++
 				d.stack = d.stack[:len(d.stack)-1]
 				return ObjEnd
 			default:
@@ -125,8 +125,8 @@ func (d *Decoder) token() Kind {
 			if !d.hasMore() {
 				return d.unexpectedEOF()
 			}
-			if d.peek() == ']' {
-				d.next()
+			if d.buf[d.pos] == ']' {
+				d.pos++
 				d.stack = d.stack[:len(d.stack)-1]
 				return ArrEnd
 			}
@@ -139,14 +139,14 @@ func (d *Decoder) value() Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
-	switch d.peek() {
+	switch d.buf[d.pos] {
 	case '{':
 		d.stack = append(d.stack, '{')
-		d.next()
+		d.pos++
 		return ObjBegin
 	case '[':
 		d.stack = append(d.stack, '[')
-		d.next()
+		d.pos++
 		return ArrBegin
 	case '"':
 		return d.string()
@@ -201,11 +201,11 @@ func (d *Decoder) value() Kind {
 		if !d.hasMore() {
 			return d.unexpectedEOF()
 		}
-		p := d.peek()
+		p := d.buf[d.pos]
 		if p == '-' || ('0' <= p && p <= '9') {
 			return d.number()
 		}
-		return d.error(d.peek(), "looking for beginning of value")
+		return d.error(p, "looking for beginning of value")
 	}
 }
 
@@ -213,29 +213,21 @@ func (d *Decoder) hasMore() bool {
 	return d.pos < len(d.buf)
 }
 
-func (d *Decoder) peek() byte {
-	return d.buf[d.pos]
-}
-
-func (d *Decoder) next() byte {
-	d.pos++
-	return d.buf[d.pos-1]
-}
-
 func (d *Decoder) match(m byte, context string) Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
-	if b := d.next(); b != m {
+	if b := d.buf[d.pos]; b != m {
 		return d.error(b, context)
 	}
+	d.pos++
 	return noError
 }
 
 func (d *Decoder) whitespace() {
 	for d.hasMore() {
-		if p := d.peek(); p == ' ' || p == '\t' || p == '\r' || p == '\n' {
-			d.next()
+		if p := d.buf[d.pos]; p == ' ' || p == '\t' || p == '\r' || p == '\n' {
+			d.pos++
 		} else {
 			break
 		}

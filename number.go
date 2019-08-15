@@ -18,37 +18,39 @@ func (d *Decoder) number() Kind {
 	d.mark = d.pos
 
 	// optional -
-	if d.hasMore() && d.peek() == '-' {
-		d.next()
+	if d.hasMore() && d.buf[d.pos] == '-' {
+		d.pos++
 	}
 
 	// digits
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
-	b := d.next()
+	b := d.buf[d.pos]
 	switch {
 	case b == '0':
+		d.pos++
 	case '1' <= b && b <= '9':
+		d.pos++
 		d.digits()
 	default:
 		return d.error(b, "in numeric literal")
 	}
 	if d.hasMore() {
-		if d.peek() == '.' {
-			d.next()
+		if d.buf[d.pos] == '.' {
+			d.pos++
 			if d.oneOrMoreDigits("after decimal point in numeric literal") == Error {
 				return Error
 			}
 		}
 		if d.hasMore() {
-			p := d.peek()
+			p := d.buf[d.pos]
 			if p == 'e' || p == 'E' {
-				d.next()
+				d.pos++
 				if d.hasMore() {
-					p = d.peek()
+					p = d.buf[d.pos]
 					if p == '+' || p == '-' {
-						d.next()
+						d.pos++
 					}
 				}
 				if d.oneOrMoreDigits("in exponent of numeric literal") == Error {
@@ -62,9 +64,9 @@ func (d *Decoder) number() Kind {
 
 func (d *Decoder) digits() {
 	for d.hasMore() {
-		p := d.peek()
+		p := d.buf[d.pos]
 		if '0' <= p && p <= '9' {
-			d.next()
+			d.pos++
 		} else {
 			return
 		}
@@ -75,10 +77,11 @@ func (d *Decoder) oneOrMoreDigits(context string) Kind {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
-	b := d.next()
+	b := d.buf[d.pos]
 	if !('0' <= b && b <= '9') {
 		return d.error(b, context)
 	}
+	d.pos++
 	d.digits()
 	return noError
 }
