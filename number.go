@@ -34,7 +34,7 @@ func (d *Decoder) number() Token {
 		d.pos++
 		d.digits()
 	default:
-		return d.error(b, "in numeric literal")
+		return d.error("in numeric literal")
 	}
 	if d.hasMore() {
 		if d.buf[d.pos] == '.' {
@@ -79,7 +79,7 @@ func (d *Decoder) oneOrMoreDigits(context string) Token {
 	}
 	b := d.buf[d.pos]
 	if !('0' <= b && b <= '9') {
-		return d.error(b, context)
+		return d.error(context)
 	}
 	d.pos++
 	d.digits()

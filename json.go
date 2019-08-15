@@ -201,7 +201,7 @@ func (d *Decoder) Token() Token {
 		if p == '-' || ('0' <= p && p <= '9') {
 			return d.number()
 		}
-		return d.error(p, "looking for beginning of value")
+		return d.error("looking for beginning of value")
 	}
 }
 
@@ -214,7 +214,7 @@ func (d *Decoder) match(m byte, context string) Token {
 		return d.unexpectedEOF()
 	}
 	if b := d.buf[d.pos]; b != m {
-		return d.error(b, context)
+		return d.error(context)
 	}
 	d.pos++
 	return Token{Kind: none}
@@ -348,10 +348,10 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string { return e.msg }
 
-func (d *Decoder) error(c byte, context string) Token {
+func (d *Decoder) error(context string) Token {
 	return Token{
 		Kind: Error,
-		Err:  &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)},
+		Err:  &SyntaxError{"invalid character " + quoteChar(d.buf[d.pos]) + " " + context, int64(d.pos)},
 	}
 }
 

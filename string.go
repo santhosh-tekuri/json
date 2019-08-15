@@ -26,7 +26,7 @@ func (d *Decoder) string() Token {
 		return d.unexpectedEOF()
 	}
 	if b := d.buf[d.pos]; b != '"' {
-		return d.error(b, "looking for beginning of object key string")
+		return d.error("looking for beginning of object key string")
 	}
 	d.pos++
 	for {
@@ -58,14 +58,14 @@ func (d *Decoder) string() Token {
 					case '0' <= b && b <= '9', 'A' <= b && b <= 'F', 'a' <= b && b <= 'f':
 						d.pos++
 					default:
-						return d.error(b, "in \\u hexadecimal character escape")
+						return d.error("in \\u hexadecimal character escape")
 					}
 				}
 			default:
-				return d.error(b, "in string escape code")
+				return d.error("in string escape code")
 			}
 		case b < 0x20:
-			return d.error(b, "in string literal")
+			return d.error("in string literal")
 		default:
 			d.pos++
 		}
