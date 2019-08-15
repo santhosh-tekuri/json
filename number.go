@@ -14,7 +14,7 @@
 
 package json
 
-func (d *Decoder) number() Kind {
+func (d *Decoder) number() Token {
 	d.mark = d.pos
 
 	// optional -
@@ -39,8 +39,8 @@ func (d *Decoder) number() Kind {
 	if d.hasMore() {
 		if d.buf[d.pos] == '.' {
 			d.pos++
-			if d.oneOrMoreDigits("after decimal point in numeric literal") == Error {
-				return Error
+			if t := d.oneOrMoreDigits("after decimal point in numeric literal"); t.Kind == Error {
+				return t
 			}
 		}
 		if d.hasMore() {
@@ -53,13 +53,13 @@ func (d *Decoder) number() Kind {
 						d.pos++
 					}
 				}
-				if d.oneOrMoreDigits("in exponent of numeric literal") == Error {
-					return Error
+				if t := d.oneOrMoreDigits("in exponent of numeric literal"); t.Kind == Error {
+					return t
 				}
 			}
 		}
 	}
-	return Number
+	return Token{Kind: Number, Data: d.buf[d.mark:d.pos]}
 }
 
 func (d *Decoder) digits() {
@@ -73,7 +73,7 @@ func (d *Decoder) digits() {
 	}
 }
 
-func (d *Decoder) oneOrMoreDigits(context string) Kind {
+func (d *Decoder) oneOrMoreDigits(context string) Token {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
@@ -83,5 +83,5 @@ func (d *Decoder) oneOrMoreDigits(context string) Kind {
 	}
 	d.pos++
 	d.digits()
-	return none
+	return Token{Kind: none}
 }

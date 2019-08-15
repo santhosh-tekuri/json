@@ -24,7 +24,6 @@ type Decoder struct {
 	pos   int
 	stack []byte
 	mark  int
-	err   error
 	empty Kind // tells action to take when stack is empty
 	comma bool // if comma && stack.peek is '{' or '[' then read ','
 }
@@ -38,17 +37,7 @@ func (d *Decoder) Reset(b []byte) {
 }
 
 func (d *Decoder) Token() Token {
-	d.err, d.mark = nil, -1
-	t := d.token()
-	switch t {
-	case String, Number, Boolean:
-		return Token{t, d.buf[d.mark:d.pos], d.err}
-	default:
-		return Token{t, nil, d.err}
-	}
-}
-
-func (d *Decoder) token() Kind {
+	d.mark = -1
 	d.whitespace()
 	if len(d.stack) == 0 {
 		switch d.empty {
@@ -56,15 +45,14 @@ func (d *Decoder) token() Kind {
 			d.empty = EOD
 		case EOD:
 			d.empty = EOF
-			return EOD
+			return Token{Kind: EOD}
 		case EOF:
 			if !d.hasMore() {
-				return EOF
+				return Token{Kind: EOF}
 			}
 			d.empty = EOD
 		}
-	}
-	if len(d.stack) > 0 {
+	} else {
 		if d.comma {
 			s := d.stack[len(d.stack)-1]
 			if s == '{' || s == '[' {
@@ -78,17 +66,17 @@ func (d *Decoder) token() Kind {
 					}
 				} else {
 					if s == '{' {
-						if d.match('}', "after object key:value pair") == Error {
-							return Error
+						if t := d.match('}', "after object key:value pair"); t.Kind == Error {
+							return t
 						}
 						d.stack = d.stack[:len(d.stack)-1]
-						return ObjEnd
+						return Token{Kind: ObjEnd}
 					} else if s == '[' {
-						if d.match(']', "after array element") == Error {
-							return Error
+						if t := d.match(']', "after array element"); t.Kind == Error {
+							return t
 						}
 						d.stack = d.stack[:len(d.stack)-1]
-						return ArrEnd
+						return Token{Kind: ArrEnd}
 					}
 				}
 			}
@@ -100,8 +88,8 @@ func (d *Decoder) token() Kind {
 		switch s {
 		case ':':
 			d.stack = d.stack[:len(d.stack)-1]
-			if d.match(':', "after object key") == Error {
-				return Error
+			if t := d.match(':', "after object key"); t.Kind == Error {
+				return t
 			}
 			d.whitespace()
 		case '{':
@@ -112,7 +100,7 @@ func (d *Decoder) token() Kind {
 			case '}':
 				d.pos++
 				d.stack = d.stack[:len(d.stack)-1]
-				return ObjEnd
+				return Token{Kind: ObjEnd}
 			default:
 				t := d.string()
 				d.stack = append(d.stack, ':')
@@ -125,7 +113,7 @@ func (d *Decoder) token() Kind {
 			if d.buf[d.pos] == ']' {
 				d.pos++
 				d.stack = d.stack[:len(d.stack)-1]
-				return ArrEnd
+				return Token{Kind: ArrEnd}
 			}
 		}
 	}
@@ -139,61 +127,61 @@ func (d *Decoder) token() Kind {
 		d.stack = append(d.stack, '{')
 		d.pos++
 		d.comma = false
-		return ObjBegin
+		return Token{Kind: ObjBegin}
 	case '[':
 		d.stack = append(d.stack, '[')
 		d.pos++
 		d.comma = false
-		return ArrBegin
+		return Token{Kind: ArrBegin}
 	case '"':
 		return d.string()
 	case 'n':
-		if d.match('n', "in literal null") == Error {
-			return Error
+		if t := d.match('n', "in literal null"); t.Kind == Error {
+			return t
 		}
-		if d.match('u', "in literal null") == Error {
-			return Error
+		if t := d.match('u', "in literal null"); t.Kind == Error {
+			return t
 		}
-		if d.match('l', "in literal null") == Error {
-			return Error
+		if t := d.match('l', "in literal null"); t.Kind == Error {
+			return t
 		}
-		if d.match('l', "in literal null") == Error {
-			return Error
+		if t := d.match('l', "in literal null"); t.Kind == Error {
+			return t
 		}
-		return Null
+		return Token{Kind: Null}
 	case 't':
 		d.mark = d.pos
-		if d.match('t', "in literal true") == Error {
-			return Error
+		if t := d.match('t', "in literal true"); t.Kind == Error {
+			return t
 		}
-		if d.match('r', "in literal true") == Error {
-			return Error
+		if t := d.match('r', "in literal true"); t.Kind == Error {
+			return t
 		}
-		if d.match('u', "in literal true") == Error {
-			return Error
+		if t := d.match('u', "in literal true"); t.Kind == Error {
+			return t
 		}
-		if d.match('e', "in literal true") == Error {
-			return Error
+		if t := d.match('e', "in literal true"); t.Kind == Error {
+			return t
 		}
-		return Boolean
+		return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
 	case 'f':
 		d.mark = d.pos
-		if d.match('f', "in literal false") == Error {
-			return Error
+		if t := d.match('f', "in literal false"); t.Kind == Error {
+			return t
 		}
-		if d.match('a', "in literal false") == Error {
-			return Error
+		if t := d.match('a', "in literal false"); t.Kind == Error {
+			return t
 		}
-		if d.match('l', "in literal false") == Error {
-			return Error
+		if t := d.match('l', "in literal false"); t.Kind == Error {
+			return t
 		}
-		if d.match('s', "in literal false") == Error {
-			return Error
+		if t := d.match('s', "in literal false"); t.Kind == Error {
+			return t
 		}
-		if d.match('e', "in literal false") == Error {
-			return Error
+		if t := d.match('e', "in literal false"); t.Kind == Error {
+			return t
 		}
-		return Boolean
+		return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
 	default:
 		if !d.hasMore() {
 			return d.unexpectedEOF()
@@ -210,7 +198,7 @@ func (d *Decoder) hasMore() bool {
 	return d.pos < len(d.buf)
 }
 
-func (d *Decoder) match(m byte, context string) Kind {
+func (d *Decoder) match(m byte, context string) Token {
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
@@ -218,7 +206,7 @@ func (d *Decoder) match(m byte, context string) Kind {
 		return d.error(b, context)
 	}
 	d.pos++
-	return none
+	return Token{Kind: none}
 }
 
 func (d *Decoder) whitespace() {
@@ -313,9 +301,11 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string { return e.msg }
 
-func (d *Decoder) error(c byte, context string) Kind {
-	d.err = &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)}
-	return Error
+func (d *Decoder) error(c byte, context string) Token {
+	return Token{
+		Kind: Error,
+		Err:  &SyntaxError{"invalid character " + quoteChar(c) + " " + context, int64(d.pos)},
+	}
 }
 
 var unexpectedEOF = "unexpected end of JSON input"
@@ -325,9 +315,11 @@ func IsUnexpectedEOF(err error) bool {
 	return ok && e.msg == unexpectedEOF
 }
 
-func (d *Decoder) unexpectedEOF() Kind {
-	d.err = &SyntaxError{unexpectedEOF, int64(d.pos)}
-	return Error
+func (d *Decoder) unexpectedEOF() Token {
+	return Token{
+		Kind: Error,
+		Err:  &SyntaxError{unexpectedEOF, int64(d.pos)},
+	}
 }
 
 // quoteChar formats c as a quoted character literal

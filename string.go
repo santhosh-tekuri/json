@@ -20,7 +20,7 @@ import (
 	"unicode/utf8"
 )
 
-func (d *Decoder) string() Kind {
+func (d *Decoder) string() Token {
 	d.mark = d.pos
 	if !d.hasMore() {
 		return d.unexpectedEOF()
@@ -37,7 +37,7 @@ func (d *Decoder) string() Kind {
 		switch {
 		case b == '"':
 			d.pos++
-			return String
+			return Token{Kind: String, Data: d.buf[d.mark:d.pos]}
 		case b == '\\':
 			d.pos++
 			if !d.hasMore() {
