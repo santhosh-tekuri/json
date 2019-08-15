@@ -25,7 +25,7 @@ type Decoder struct {
 	stack []byte
 	mark  int
 	empty Kind // tells action to take when stack is empty
-	comma bool // if comma && stack.peek is '{' or '[' then read ','
+	comma bool // if comma && !stack.empty then read ','
 	colon bool // if true read ':'
 	peek  Token
 }
@@ -74,7 +74,7 @@ func (d *Decoder) Token() Token {
 		}
 	} else {
 		s := d.stack[len(d.stack)-1]
-		if d.comma && (s == '{' || s == '[') {
+		if d.comma {
 			if !d.hasMore() {
 				return d.unexpectedEOF()
 			}
