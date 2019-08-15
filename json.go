@@ -26,20 +26,27 @@ type Decoder struct {
 	mark  int
 	empty Kind // tells action to take when stack is empty
 	comma bool // if comma && stack.peek is '{' or '[' then read ','
+	colon bool // if true read ':'
 }
 
 func NewDecoder(b []byte) *Decoder {
-	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, comma: true}
+	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, comma: true, colon: false}
 }
 
 func (d *Decoder) Reset(b []byte) {
-	d.buf, d.pos, d.stack, d.empty, d.comma = b, 0, d.stack[:0], none, true
+	d.buf, d.pos, d.stack, d.empty, d.comma, d.colon = b, 0, d.stack[:0], none, true, false
 }
 
 func (d *Decoder) Token() Token {
 	d.mark = -1
 	d.whitespace()
-	if len(d.stack) == 0 {
+	if d.colon {
+		d.colon = false
+		if t := d.match(':', "after object key"); t.Kind == Error {
+			return t
+		}
+		d.whitespace()
+	} else if len(d.stack) == 0 {
 		switch d.empty {
 		case none:
 			d.empty = EOD
@@ -53,67 +60,61 @@ func (d *Decoder) Token() Token {
 			d.empty = EOD
 		}
 	} else {
-		if d.comma {
-			s := d.stack[len(d.stack)-1]
-			if s == '{' || s == '[' {
-				if d.buf[d.pos] == ',' {
-					d.pos++
-					d.whitespace()
-					if s == '{' {
-						t := d.string()
-						d.stack = append(d.stack, ':')
+		s := d.stack[len(d.stack)-1]
+		if d.comma && (s == '{' || s == '[') {
+			if !d.hasMore() {
+				return d.unexpectedEOF()
+			}
+			if d.buf[d.pos] != ',' {
+				if s == '{' {
+					if t := d.match('}', "after object key:value pair"); t.Kind == Error {
 						return t
 					}
-				} else {
-					if s == '{' {
-						if t := d.match('}', "after object key:value pair"); t.Kind == Error {
-							return t
-						}
-						d.stack = d.stack[:len(d.stack)-1]
-						return Token{Kind: ObjEnd}
-					} else if s == '[' {
-						if t := d.match(']', "after array element"); t.Kind == Error {
-							return t
-						}
-						d.stack = d.stack[:len(d.stack)-1]
-						return Token{Kind: ArrEnd}
+					d.stack = d.stack[:len(d.stack)-1]
+					return Token{Kind: ObjEnd}
+				} else if s == '[' {
+					if t := d.match(']', "after array element"); t.Kind == Error {
+						return t
 					}
+					d.stack = d.stack[:len(d.stack)-1]
+					return Token{Kind: ArrEnd}
 				}
 			}
-		} else {
-			d.comma = true
-		}
-
-		s := d.stack[len(d.stack)-1]
-		switch s {
-		case ':':
-			d.stack = d.stack[:len(d.stack)-1]
-			if t := d.match(':', "after object key"); t.Kind == Error {
-				return t
-			}
+			// has comma
+			d.pos++
 			d.whitespace()
-		case '{':
-			if !d.hasMore() {
-				return d.unexpectedEOF()
-			}
-			switch d.buf[d.pos] {
-			case '}':
-				d.pos++
-				d.stack = d.stack[:len(d.stack)-1]
-				return Token{Kind: ObjEnd}
-			default:
+			if s == '{' {
 				t := d.string()
-				d.stack = append(d.stack, ':')
+				d.colon = true
 				return t
 			}
-		case '[':
-			if !d.hasMore() {
-				return d.unexpectedEOF()
-			}
-			if d.buf[d.pos] == ']' {
-				d.pos++
-				d.stack = d.stack[:len(d.stack)-1]
-				return Token{Kind: ArrEnd}
+		} else {
+			// it is next token after '{' or '['
+			d.comma = true
+			switch s {
+			case '{':
+				if !d.hasMore() {
+					return d.unexpectedEOF()
+				}
+				switch d.buf[d.pos] {
+				case '}':
+					d.pos++
+					d.stack = d.stack[:len(d.stack)-1]
+					return Token{Kind: ObjEnd}
+				default:
+					t := d.string()
+					d.colon = true
+					return t
+				}
+			case '[':
+				if !d.hasMore() {
+					return d.unexpectedEOF()
+				}
+				if d.buf[d.pos] == ']' {
+					d.pos++
+					d.stack = d.stack[:len(d.stack)-1]
+					return Token{Kind: ArrEnd}
+				}
 			}
 		}
 	}

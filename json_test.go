@@ -37,7 +37,11 @@ func TestDecoder(t *testing.T) {
 		{"empty_arr", `[]`},
 		{"object_invalid_comma1", `{,}`},
 		{"object_invalid_comma2", `{"key":"value",}`},
-		{"object_invalid_comma2", `{,"key":"value"}`},
+		{"object_invalid_comma3", `{"key":"value",,}`},
+		{"object_invalid_comma4", `{,"key":"value"}`},
+		{"array_invalid_comma1", `[,]`},
+		{"array_invalid_comma2", `[1,]`},
+		{"array_invalid_comma3", `[1,,]`},
 		{"null", `null`},
 		{"string_empty", `""`},
 		{"string", `"this is message"`},
@@ -138,7 +142,7 @@ func TestDecoder(t *testing.T) {
 				switch {
 				case tok.Error():
 					if goerr == nil {
-						t.Fatal()
+						t.Fatal(tok.Err)
 					}
 					t.Logf("\n  err %v\ngoerr %v", tok.Err, goerr)
 					if goerr == io.EOF || goerr == io.ErrUnexpectedEOF {
