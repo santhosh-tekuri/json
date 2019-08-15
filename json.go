@@ -55,8 +55,8 @@ func (d *Decoder) Token() Token {
 	d.whitespace()
 	if d.colon {
 		d.colon = false
-		if t := d.match(':', "after object key"); t.Kind == Error {
-			return t
+		if !d.match(':') {
+			return d.error("after object key")
 		}
 		d.whitespace()
 	} else if len(d.stack) == 0 {
@@ -80,14 +80,14 @@ func (d *Decoder) Token() Token {
 			}
 			if d.buf[d.pos] != ',' {
 				if s == '{' {
-					if t := d.match('}', "after object key:value pair"); t.Kind == Error {
-						return t
+					if !d.match('}') {
+						return d.error("after object key:value pair")
 					}
 					d.stack = d.stack[:len(d.stack)-1]
 					return Token{Kind: ObjEnd}
 				} else if s == '[' {
-					if t := d.match(']', "after array element"); t.Kind == Error {
-						return t
+					if !d.match(']') {
+						return d.error("after array element")
 					}
 					d.stack = d.stack[:len(d.stack)-1]
 					return Token{Kind: ArrEnd}
@@ -150,52 +150,25 @@ func (d *Decoder) Token() Token {
 	case '"':
 		return d.string()
 	case 'n':
-		if t := d.match('n', "in literal null"); t.Kind == Error {
-			return t
+		d.pos++
+		if d.match('u') && d.match('l') && d.match('l') {
+			return Token{Kind: Null}
 		}
-		if t := d.match('u', "in literal null"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('l', "in literal null"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('l', "in literal null"); t.Kind == Error {
-			return t
-		}
-		return Token{Kind: Null}
+		return d.error("in literal null")
 	case 't':
 		d.mark = d.pos
-		if t := d.match('t', "in literal true"); t.Kind == Error {
-			return t
+		d.pos++
+		if d.match('r') && d.match('u') && d.match('e') {
+			return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
 		}
-		if t := d.match('r', "in literal true"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('u', "in literal true"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('e', "in literal true"); t.Kind == Error {
-			return t
-		}
-		return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
+		return d.error("in literal true")
 	case 'f':
 		d.mark = d.pos
-		if t := d.match('f', "in literal false"); t.Kind == Error {
-			return t
+		d.pos++
+		if d.match('a') && d.match('l') && d.match('s') && d.match('e') {
+			return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
 		}
-		if t := d.match('a', "in literal false"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('l', "in literal false"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('s', "in literal false"); t.Kind == Error {
-			return t
-		}
-		if t := d.match('e', "in literal false"); t.Kind == Error {
-			return t
-		}
-		return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
+		return d.error("in literal false")
 	default:
 		p := d.buf[d.pos]
 		if p == '-' || ('0' <= p && p <= '9') {
@@ -209,15 +182,12 @@ func (d *Decoder) hasMore() bool {
 	return d.pos < len(d.buf)
 }
 
-func (d *Decoder) match(m byte, context string) Token {
-	if !d.hasMore() {
-		return d.unexpectedEOF()
+func (d *Decoder) match(m byte) bool {
+	if d.hasMore() && d.buf[d.pos] == m {
+		d.pos++
+		return true
 	}
-	if b := d.buf[d.pos]; b != m {
-		return d.error(context)
-	}
-	d.pos++
-	return Token{Kind: none}
+	return false
 }
 
 func (d *Decoder) whitespace() {
@@ -349,6 +319,9 @@ type SyntaxError struct {
 func (e *SyntaxError) Error() string { return e.msg }
 
 func (d *Decoder) error(context string) Token {
+	if d.pos == len(d.buf) {
+		return d.unexpectedEOF()
+	}
 	return Token{
 		Kind: Error,
 		Err:  &SyntaxError{"invalid character " + quoteChar(d.buf[d.pos]) + " " + context, int64(d.pos)},

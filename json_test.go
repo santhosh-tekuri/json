@@ -32,6 +32,15 @@ func TestDecoder(t *testing.T) {
 		name string
 		doc  string
 	}{
+		{"true", `true`},
+		{"true_partial1", `tr`},
+		{"true_partial2", `tr `},
+		{"false", `false`},
+		{"false_partial1", `fal`},
+		{"false_partial2", `fal `},
+		{"null", `null`},
+		{"null_partial1", `nu`},
+		{"null_partial2", `nu `},
 		{"empty", ``},
 		{"empty_obj", `{}`},
 		{"empty_arr", `[]`},
