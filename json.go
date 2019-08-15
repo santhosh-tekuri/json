@@ -132,10 +132,8 @@ func (d *Decoder) token() Kind {
 			}
 		}
 	}
-	return d.value()
-}
 
-func (d *Decoder) value() Kind {
+	// read value ---
 	if !d.hasMore() {
 		return d.unexpectedEOF()
 	}
