@@ -53,13 +53,7 @@ func (d *Decoder) Token() Token {
 	}
 	d.mark = -1
 	d.whitespace()
-	if d.colon {
-		d.colon = false
-		if !d.match(':') {
-			return d.error("after object key")
-		}
-		d.whitespace()
-	} else if len(d.stack) == 0 {
+	if len(d.stack) == 0 {
 		switch d.empty {
 		case none:
 			d.empty = EOD
@@ -77,7 +71,14 @@ func (d *Decoder) Token() Token {
 		if d.pos == len(d.buf) {
 			return d.unexpectedEOF()
 		}
-		if d.comma {
+		if d.colon {
+			d.colon = false
+			if d.buf[d.pos] != ':' {
+				return d.error("after object key")
+			}
+			d.pos++
+			d.whitespace()
+		} else if d.comma {
 			if d.buf[d.pos] != ',' {
 				if s == '{' {
 					if d.buf[d.pos] != '}' {
