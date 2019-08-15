@@ -19,8 +19,7 @@ import "strconv"
 type Kind byte
 
 const (
-	noError Kind = iota
-	Error
+	none Kind = iota
 	EOD
 	EOF
 	ObjBegin
@@ -31,6 +30,7 @@ const (
 	Number
 	Boolean
 	Null
+	Error
 )
 
 var kindNames = []string{

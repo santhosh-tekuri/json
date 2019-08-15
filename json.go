@@ -25,23 +25,21 @@ type Decoder struct {
 	stack []byte
 	mark  int
 	err   error
+	empty Kind // tells action to take when stack is empty
 	comma bool // if comma && stack.peek is '{' or '[' then read ','
 }
 
 func NewDecoder(b []byte) *Decoder {
-	return &Decoder{buf: b, stack: make([]byte, 0, 50), comma: true}
+	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, comma: true}
 }
 
 func (d *Decoder) Reset(b []byte) {
-	d.buf, d.pos, d.stack, d.comma = b, 0, d.stack[:0], true
+	d.buf, d.pos, d.stack, d.empty, d.comma = b, 0, d.stack[:0], none, true
 }
 
 func (d *Decoder) Token() Token {
 	d.err, d.mark = nil, -1
 	t := d.token()
-	if len(d.stack) == 0 {
-		d.stack = append(d.stack, 0)
-	}
 	switch t {
 	case String, Number, Boolean:
 		return Token{t, d.buf[d.mark:d.pos], d.err}
@@ -52,6 +50,20 @@ func (d *Decoder) Token() Token {
 
 func (d *Decoder) token() Kind {
 	d.whitespace()
+	if len(d.stack) == 0 {
+		switch d.empty {
+		case none:
+			d.empty = EOD
+		case EOD:
+			d.empty = EOF
+			return EOD
+		case EOF:
+			if !d.hasMore() {
+				return EOF
+			}
+			d.empty = EOD
+		}
+	}
 	if len(d.stack) > 0 {
 		if d.comma {
 			s := d.stack[len(d.stack)-1]
@@ -86,15 +98,6 @@ func (d *Decoder) token() Kind {
 
 		s := d.stack[len(d.stack)-1]
 		switch s {
-		case 0:
-			d.stack[len(d.stack)-1] = 1
-			return EOD
-		case 1:
-			if d.hasMore() {
-				d.stack = d.stack[:len(d.stack)-1]
-			} else {
-				return EOF
-			}
 		case ':':
 			d.stack = d.stack[:len(d.stack)-1]
 			if d.match(':', "after object key") == Error {
@@ -215,7 +218,7 @@ func (d *Decoder) match(m byte, context string) Kind {
 		return d.error(b, context)
 	}
 	d.pos++
-	return noError
+	return none
 }
 
 func (d *Decoder) whitespace() {

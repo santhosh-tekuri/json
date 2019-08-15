@@ -83,5 +83,5 @@ func (d *Decoder) oneOrMoreDigits(context string) Kind {
 	}
 	d.pos++
 	d.digits()
-	return noError
+	return none
 }
