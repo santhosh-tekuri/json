@@ -142,11 +142,7 @@ func (d *Decoder) Token() Token {
 		}
 		return d.error("in literal false")
 	default:
-		p := d.buf[d.pos]
-		if p == '-' || ('0' <= p && p <= '9') {
-			return d.number()
-		}
-		return d.error("looking for beginning of value")
+		return d.number()
 	}
 }
 

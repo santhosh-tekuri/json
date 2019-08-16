@@ -15,17 +15,20 @@
 package json
 
 func (d *Decoder) number() Token {
-	d.mark = d.pos
-
-	// optional -
-	if d.pos < len(d.buf) && d.buf[d.pos] == '-' {
-		d.pos++
-	}
-
-	// digits
 	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
+	d.mark = d.pos
+
+	// optional -
+	if d.buf[d.pos] == '-' {
+		d.pos++
+		if d.pos == len(d.buf) {
+			return d.unexpectedEOF()
+		}
+	}
+
+	// digits
 	b := d.buf[d.pos]
 	switch {
 	case b == '0':
@@ -34,6 +37,9 @@ func (d *Decoder) number() Token {
 		d.pos++
 		d.digits()
 	default:
+		if d.mark == d.pos {
+			return d.error("looking for beginning of value")
+		}
 		return d.error("in numeric literal")
 	}
 	if d.pos < len(d.buf) {
