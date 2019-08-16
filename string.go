@@ -37,8 +37,7 @@ func (d *Decoder) string() Token {
 			if d.pos == len(d.buf) {
 				return d.unexpectedEOF()
 			}
-			b = d.buf[d.pos]
-			switch b {
+			switch d.buf[d.pos] {
 			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
 				d.pos++
 			case 'u':
