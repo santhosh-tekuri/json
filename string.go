@@ -22,12 +22,6 @@ import (
 
 func (d *Decoder) string() Token {
 	d.mark = d.pos
-	if d.pos == len(d.buf) {
-		return d.unexpectedEOF()
-	}
-	if b := d.buf[d.pos]; b != '"' {
-		return d.error("looking for beginning of object key string")
-	}
 	d.pos++
 	for {
 		if d.pos == len(d.buf) {

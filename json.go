@@ -97,9 +97,13 @@ func (d *Decoder) Token() Token {
 				d.whitespace()
 			}
 			if s == '{' {
-				t := d.string()
+				if d.pos == len(d.buf) {
+					return d.unexpectedEOF()
+				}
+				if b := d.buf[d.pos]; b != '"' {
+					return d.error("looking for beginning of object key string")
+				}
 				d.colon = true
-				return t
 			}
 		}
 	}
