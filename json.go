@@ -242,7 +242,11 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 type PropUnmarshaller func(de *Decoder, prop Token) error
 
 func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
-	if err := d.Token().Obj(context); err != nil {
+	t := d.Token()
+	if t.Null() {
+		return nil
+	}
+	if err := t.Obj(context); err != nil {
 		return err
 	}
 	var err error
@@ -254,6 +258,10 @@ func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
 		case t.End():
 			return nil
 		default:
+			if d.Peek().Null() {
+				d.Token()
+				continue
+			}
 			if err = f(d, t); err != nil {
 				return err
 			}
@@ -264,7 +272,11 @@ func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
 type ArrUnmarshaller func(de *Decoder) error
 
 func (d *Decoder) UnmarshalArr(context string, f ArrUnmarshaller) error {
-	if err := d.Token().Arr(context); err != nil {
+	t := d.Token()
+	if t.Null() {
+		return nil
+	}
+	if err := t.Arr(context); err != nil {
 		return err
 	}
 	for !d.Peek().End() {
