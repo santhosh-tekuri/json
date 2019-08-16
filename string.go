@@ -28,11 +28,11 @@ func (d *Decoder) string() Token {
 			return d.unexpectedEOF()
 		}
 		b := d.buf[d.pos]
-		switch {
-		case b == '"':
+		switch b {
+		case '"':
 			d.pos++
 			return Token{Kind: String, Data: d.buf[d.mark:d.pos]}
-		case b == '\\':
+		case '\\':
 			d.pos++
 			if d.pos == len(d.buf) {
 				return d.unexpectedEOF()
@@ -58,9 +58,10 @@ func (d *Decoder) string() Token {
 			default:
 				return d.error("in string escape code")
 			}
-		case b < 0x20:
-			return d.error("in string literal")
 		default:
+			if b < 0x20 {
+				return d.error("in string literal")
+			}
 			d.pos++
 		}
 	}
