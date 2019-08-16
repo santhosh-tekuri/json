@@ -39,58 +39,61 @@ type address struct {
 	state  string
 }
 
-func (a *address) Unmarshal(de *json.Decoder, prop json.Token) (err error) {
-	switch {
-	case prop.Eq("street"):
-		a.street, err = de.Token().Str("address.street")
-	case prop.Eq("city"):
-		a.city, err = de.Token().Str("address.city")
-	case prop.Eq("state"):
-		a.state, err = de.Token().Str("address.state")
-	default:
-		err = de.Skip()
-	}
-	return
-}
-
-func (d *details) Unmarshal(de *json.Decoder, prop json.Token) (err error) {
-	switch {
-	case prop.Eq("height"):
-		d.height, err = de.Token().Float64("details.height")
-	case prop.Eq("weight"):
-		d.weight, err = de.Token().Float64("details.weight")
-	default:
-		err = de.Skip()
-	}
-	return
-}
-
-func (e *employee) Unmarshal(de *json.Decoder, prop json.Token) (err error) {
-	switch {
-	case prop.Eq("name"):
-		e.name, err = de.Token().Str("employee.name")
-	case prop.Eq("age"):
-		e.age, err = de.Token().Int("employee.age")
-	case prop.Eq("permanent"):
-		e.permanent, err = de.Token().Bool("employee.permanent")
-	case prop.Eq("details"):
-		err = de.UnmarshalObj("employee.details", e.details.Unmarshal)
-	case prop.Eq("addresses"):
-		err = de.UnmarshalArr("employee.addresses", func(de *json.Decoder) error {
-			addr := address{}
-			if err := de.UnmarshalObj("address", addr.Unmarshal); err != nil {
-				return err
-			}
-			e.addrs = append(e.addrs, addr)
-			return nil
-		})
-		if err != nil {
-			return err
+func (a *address) Unmarshal(de *json.Decoder) error {
+	return de.UnmarshalObj("address", func(de *json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("street"):
+			a.street, err = de.Token().Str("address.street")
+		case prop.Eq("city"):
+			a.city, err = de.Token().Str("address.city")
+		case prop.Eq("state"):
+			a.state, err = de.Token().Str("address.state")
+		default:
+			err = de.Skip()
 		}
-	default:
-		err = de.Skip()
-	}
-	return
+		return
+	})
+}
+
+func (d *details) Unmarshal(de *json.Decoder) error {
+	return de.UnmarshalObj("details", func(de *json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("height"):
+			d.height, err = de.Token().Float64("details.height")
+		case prop.Eq("weight"):
+			d.weight, err = de.Token().Float64("details.weight")
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
+
+func (e *employee) Unmarshal(de *json.Decoder) error {
+	return de.UnmarshalObj("employee", func(de *json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("name"):
+			e.name, err = de.Token().Str("employee.name")
+		case prop.Eq("age"):
+			e.age, err = de.Token().Int("employee.age")
+		case prop.Eq("permanent"):
+			e.permanent, err = de.Token().Bool("employee.permanent")
+		case prop.Eq("details"):
+			return e.details.Unmarshal(de)
+		case prop.Eq("addresses"):
+			err = de.UnmarshalArr("employee.addresses", func(de *json.Decoder) error {
+				addr := address{}
+				if err := addr.Unmarshal(de); err != nil {
+					return err
+				}
+				e.addrs = append(e.addrs, addr)
+				return nil
+			})
+		default:
+			err = de.Skip()
+		}
+		return
+	})
 }
 
 func ExampleUnmarshal() {
@@ -118,7 +121,7 @@ func ExampleUnmarshal() {
 	}`
 	de := json.NewDecoder([]byte(doc))
 	emp := employee{}
-	if err := de.UnmarshalObj("employee", emp.Unmarshal); err != nil {
+	if err := emp.Unmarshal(de); err != nil {
 		panic(err)
 	}
 	fmt.Printf("%#v\n", emp)
