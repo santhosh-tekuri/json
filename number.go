@@ -45,7 +45,7 @@ func (d *Decoder) number() Token {
 		return d.error("in numeric literal")
 	}
 
-	// fraction
+	// fraction: dot followed by one or more digits
 	if d.pos < len(d.buf) && d.buf[d.pos] == '.' {
 		d.pos++
 		if d.pos == len(d.buf) || !digit(d.buf[d.pos]) {
@@ -56,7 +56,7 @@ func (d *Decoder) number() Token {
 		}
 	}
 
-	// exponent
+	// exponent: e/E optional(+/-) followed by one or more digits
 	if d.pos < len(d.buf) {
 		if b = d.buf[d.pos]; b == 'e' || b == 'E' {
 			d.pos++
@@ -66,7 +66,7 @@ func (d *Decoder) number() Token {
 				}
 			}
 			if d.pos == len(d.buf) || !digit(d.buf[d.pos]) {
-				return d.error("after decimal point in numeric literal")
+				return d.error("in exponent of numeric literal")
 			}
 			for d.pos < len(d.buf) && digit(d.buf[d.pos]) {
 				d.pos++
