@@ -25,27 +25,27 @@ const (
 	none Kind = iota
 	EOD
 	EOF
-	ObjBegin
-	ObjEnd
-	ArrBegin
-	ArrEnd
 	String
 	Number
 	Boolean
 	Null
 	Error
+	ObjBegin, ObjEnd Kind = '{', '}'
+	ArrBegin, ArrEnd Kind = '[', ']'
 )
 
 var kindNames = []string{
 	`<none>`,
 	`<eod>`, `<eof>`,
-	`'{'`, `'}'`, `'['`, `']'`,
 	`<string>`, `<number>`, `<boolean>`, `<null>`,
 	`<error>`,
 }
 
 func (k Kind) String() string {
-	return kindNames[k]
+	if int(k) < len(kindNames) {
+		return kindNames[k]
+	}
+	return string(k)
 }
 
 type Token struct {

@@ -80,21 +80,16 @@ func (d *Decoder) Token() Token {
 			d.whitespace()
 		} else if d.comma {
 			if d.buf[d.pos] != ',' {
-				if s == '{' {
-					if d.buf[d.pos] != '}' {
+				close := s + 2
+				if d.buf[d.pos] != close {
+					if close == '}' {
 						return d.error("after object key:value pair")
 					}
-					d.pos++
-					d.stack = d.stack[:len(d.stack)-1]
-					return Token{Kind: ObjEnd}
-				} else if s == '[' {
-					if d.buf[d.pos] != ']' {
-						return d.error("after array element")
-					}
-					d.pos++
-					d.stack = d.stack[:len(d.stack)-1]
-					return Token{Kind: ArrEnd}
+					return d.error("after array element")
 				}
+				d.pos++
+				d.stack = d.stack[:len(d.stack)-1]
+				return Token{Kind: Kind(close)}
 			}
 			// has comma
 			d.pos++
@@ -107,24 +102,16 @@ func (d *Decoder) Token() Token {
 		} else {
 			// it is next token after '{' or '['
 			d.comma = true
-			switch s {
-			case '{':
-				switch d.buf[d.pos] {
-				case '}':
-					d.pos++
-					d.stack = d.stack[:len(d.stack)-1]
-					return Token{Kind: ObjEnd}
-				default:
-					t := d.string()
-					d.colon = true
-					return t
-				}
-			case '[':
-				if d.buf[d.pos] == ']' {
-					d.pos++
-					d.stack = d.stack[:len(d.stack)-1]
-					return Token{Kind: ArrEnd}
-				}
+			close := s + 2
+			if d.buf[d.pos] == close {
+				d.pos++
+				d.stack = d.stack[:len(d.stack)-1]
+				return Token{Kind: Kind(close)}
+			}
+			if s == '{' {
+				t := d.string()
+				d.colon = true
+				return t
 			}
 		}
 	}
@@ -134,16 +121,12 @@ func (d *Decoder) Token() Token {
 		return d.unexpectedEOF()
 	}
 	switch d.buf[d.pos] {
-	case '{':
-		d.stack = append(d.stack, '{')
+	case '{', '[':
+		b := d.buf[d.pos]
+		d.stack = append(d.stack, b)
 		d.pos++
 		d.comma = false
-		return Token{Kind: ObjBegin}
-	case '[':
-		d.stack = append(d.stack, '[')
-		d.pos++
-		d.comma = false
-		return Token{Kind: ArrBegin}
+		return Token{Kind: Kind(b)}
 	case '"':
 		return d.string()
 	case 'n':
