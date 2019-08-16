@@ -52,7 +52,13 @@ func (d *Decoder) Token() Token {
 		return t
 	}
 	d.mark = -1
-	d.whitespace()
+	// skip whitespace
+	for _, b := range d.buf[d.pos:] {
+		if !whitespace(b) {
+			break
+		}
+		d.pos++
+	}
 	if len(d.stack) == 0 {
 		switch d.empty {
 		case none:
@@ -76,8 +82,14 @@ func (d *Decoder) Token() Token {
 			if b != ':' {
 				return d.error("after object key")
 			}
-			d.pos++
-			d.whitespace()
+			d.pos++ // read colon
+			// skip whitespace
+			for _, b := range d.buf[d.pos:] {
+				if !whitespace(b) {
+					break
+				}
+				d.pos++
+			}
 		} else {
 			comma := d.comma
 			d.comma = true
@@ -93,8 +105,14 @@ func (d *Decoder) Token() Token {
 					}
 					return d.error("after array element")
 				}
-				d.pos++
-				d.whitespace()
+				d.pos++ // read comma
+				// skip whitespace
+				for _, b := range d.buf[d.pos:] {
+					if !whitespace(b) {
+						break
+					}
+					d.pos++
+				}
 			}
 			if s == '{' {
 				if d.pos == len(d.buf) {
@@ -154,14 +172,8 @@ func (d *Decoder) match(m byte) bool {
 	return false
 }
 
-func (d *Decoder) whitespace() {
-	for d.pos < len(d.buf) {
-		if p := d.buf[d.pos]; p == ' ' || p == '\t' || p == '\r' || p == '\n' {
-			d.pos++
-		} else {
-			break
-		}
-	}
+func whitespace(p byte) bool {
+	return p == ' ' || p == '\t' || p == '\r' || p == '\n'
 }
 
 func (d *Decoder) Skip() error {
