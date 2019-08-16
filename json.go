@@ -67,46 +67,34 @@ func (d *Decoder) Token() Token {
 			d.empty = EOD
 		}
 	} else {
-		s := d.stack[len(d.stack)-1]
 		if d.pos == len(d.buf) {
 			return d.unexpectedEOF()
 		}
+		s, b := d.stack[len(d.stack)-1], d.buf[d.pos]
 		if d.colon {
 			d.colon = false
-			if d.buf[d.pos] != ':' {
+			if b != ':' {
 				return d.error("after object key")
 			}
 			d.pos++
 			d.whitespace()
-		} else if d.comma {
-			if d.buf[d.pos] != ',' {
-				close := s + 2
-				if d.buf[d.pos] != close {
-					if close == '}' {
+		} else {
+			comma := d.comma
+			d.comma = true
+			if b == s+2 {
+				d.pos++
+				d.stack = d.stack[:len(d.stack)-1]
+				return Token{Kind: Kind(s + 2)}
+			}
+			if comma {
+				if b != ',' {
+					if s == '{' {
 						return d.error("after object key:value pair")
 					}
 					return d.error("after array element")
 				}
 				d.pos++
-				d.stack = d.stack[:len(d.stack)-1]
-				return Token{Kind: Kind(close)}
-			}
-			// has comma
-			d.pos++
-			d.whitespace()
-			if s == '{' {
-				t := d.string()
-				d.colon = true
-				return t
-			}
-		} else {
-			// it is next token after '{' or '['
-			d.comma = true
-			close := s + 2
-			if d.buf[d.pos] == close {
-				d.pos++
-				d.stack = d.stack[:len(d.stack)-1]
-				return Token{Kind: Kind(close)}
+				d.whitespace()
 			}
 			if s == '{' {
 				t := d.string()
