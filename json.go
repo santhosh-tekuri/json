@@ -53,10 +53,7 @@ func (d *Decoder) Token() Token {
 	}
 	d.mark = -1
 	// skip whitespace
-	for _, b := range d.buf[d.pos:] {
-		if !whitespace(b) {
-			break
-		}
+	for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
 		d.pos++
 	}
 	if len(d.stack) == 0 {
@@ -84,10 +81,7 @@ func (d *Decoder) Token() Token {
 			}
 			d.pos++ // read colon
 			// skip whitespace
-			for _, b := range d.buf[d.pos:] {
-				if !whitespace(b) {
-					break
-				}
+			for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
 				d.pos++
 			}
 		} else {
@@ -107,10 +101,7 @@ func (d *Decoder) Token() Token {
 				}
 				d.pos++ // read comma
 				// skip whitespace
-				for _, b := range d.buf[d.pos:] {
-					if !whitespace(b) {
-						break
-					}
+				for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
 					d.pos++
 				}
 			}
