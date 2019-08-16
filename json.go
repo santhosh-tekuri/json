@@ -25,17 +25,22 @@ type Decoder struct {
 	stack []byte
 	mark  int
 	empty Kind // tells action to take when stack is empty
-	comma bool // if comma && !stack.empty then read ','
-	colon bool // if true read ':'
 	peek  Token
+
+	// sep contains either 0 or ',' or ':'; default is ','
+	// if !stack.empty {
+	//    if comma then read ',' if present
+	//    if colon read ':'
+	// }
+	sep byte
 }
 
 func NewDecoder(b []byte) *Decoder {
-	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, comma: true, colon: false}
+	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, sep: ','}
 }
 
 func (d *Decoder) Reset(b []byte) {
-	d.buf, d.pos, d.stack, d.empty, d.comma, d.colon = b, 0, d.stack[:0], none, true, false
+	d.buf, d.pos, d.stack, d.empty, d.sep = b, 0, d.stack[:0], none, ','
 }
 
 func (d *Decoder) Peek() Token {
@@ -74,8 +79,8 @@ func (d *Decoder) Token() Token {
 			return d.unexpectedEOF()
 		}
 		s, b := d.stack[len(d.stack)-1], d.buf[d.pos]
-		if d.colon {
-			d.colon = false
+		if d.sep == ':' {
+			d.sep = ','
 			if b != ':' {
 				return d.error("after object key")
 			}
@@ -85,8 +90,8 @@ func (d *Decoder) Token() Token {
 				d.pos++
 			}
 		} else {
-			comma := d.comma
-			d.comma = true
+			comma := d.sep == ','
+			d.sep = ','
 			if b == s+2 {
 				d.pos++
 				d.stack = d.stack[:len(d.stack)-1]
@@ -112,7 +117,7 @@ func (d *Decoder) Token() Token {
 				if b := d.buf[d.pos]; b != '"' {
 					return d.error("looking for beginning of object key string")
 				}
-				d.colon = true
+				d.sep = ':'
 			}
 		}
 	}
@@ -126,7 +131,7 @@ func (d *Decoder) Token() Token {
 		b := d.buf[d.pos]
 		d.stack = append(d.stack, b)
 		d.pos++
-		d.comma = false
+		d.sep = 0
 		return Token{Kind: Kind(b)}
 	case '"':
 		return d.string()
