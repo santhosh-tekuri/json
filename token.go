@@ -103,7 +103,7 @@ func (t Token) Arr(context string) error {
 	}
 }
 
-func (t Token) Str(context string) (string, error) {
+func (t Token) String(context string) (string, error) {
 	switch t.Kind {
 	case Error:
 		return "", t.Err

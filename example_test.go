@@ -43,11 +43,11 @@ func (a *address) Unmarshal(de json.Decoder) error {
 	return json.UnmarshalObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("street"):
-			a.street, err = de.Token().Str("address.street")
+			a.street, err = de.Token().String("address.street")
 		case prop.Eq("city"):
-			a.city, err = de.Token().Str("address.city")
+			a.city, err = de.Token().String("address.city")
 		case prop.Eq("state"):
-			a.state, err = de.Token().Str("address.state")
+			a.state, err = de.Token().String("address.state")
 		default:
 			err = de.Skip()
 		}
@@ -73,7 +73,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 	return json.UnmarshalObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("name"):
-			e.name, err = de.Token().Str("employee.name")
+			e.name, err = de.Token().String("employee.name")
 		case prop.Eq("age"):
 			e.age, err = de.Token().Int("employee.age")
 		case prop.Eq("permanent"):

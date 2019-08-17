@@ -101,7 +101,7 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 	case Null:
 		return nil, nil
 	case String:
-		s, _ := t.Str("")
+		s, _ := t.String("")
 		return s, nil
 	case Number:
 		f, _ := t.Float64("")
@@ -119,7 +119,7 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 			if t.Kind == ObjEnd {
 				return m, nil
 			}
-			key, _ := t.Str("")
+			key, _ := t.String("")
 			v, err := d.Unmarshal()
 			if err != nil {
 				return nil, err
