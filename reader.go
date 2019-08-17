@@ -67,7 +67,6 @@ func (d *ReadDecoder) Token() Token {
 			n := len(d.d.buf) - pos
 			if n == 0 {
 				d.d.buf = d.d.buf[:0]
-				d.d.pos = 0
 			} else {
 				buf := d.d.buf
 				if n == cap(d.d.buf) {
@@ -75,14 +74,17 @@ func (d *ReadDecoder) Token() Token {
 				}
 				copy(buf, d.d.buf[pos:])
 				d.d.buf = buf[:n]
-				d.d.pos = 0
+			}
+			d.d.pos = n
+			if len(t.Data) > 0 {
+				t.Data = d.d.buf[n-len(t.Data):]
 			}
 			r := 0
 			r, err = d.r.Read(d.d.buf[n:cap(d.d.buf)])
 			if r > 0 {
 				d.d.buf = d.d.buf[:n+r]
 				d.d.sep, d.d.empty = sep, empty
-				pos = 0
+				d.d.pos, pos = 0, 0
 				continue
 			}
 		}

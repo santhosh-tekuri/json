@@ -142,10 +142,10 @@ func TestDecoder(t *testing.T) {
 			gode.UseNumber()
 			for {
 				tok := de.Token()
-				// t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
+				// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
 				if tok.EOD() {
 					tok = de.Token()
-					// t.Logf("%s %q %v", tok.Kind, tok.Data, tok.Err)
+					// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
 				}
 				gotok, goerr := gode.Token()
 				switch tok.Kind {
