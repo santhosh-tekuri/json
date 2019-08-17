@@ -20,7 +20,7 @@ import (
 	"unicode/utf8"
 )
 
-func (d *Decoder) string() Token {
+func (d *ByteDecoder) string() Token {
 	d.mark = d.pos
 	d.pos++
 	for {

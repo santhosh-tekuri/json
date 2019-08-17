@@ -21,11 +21,11 @@ import (
 
 type ReadDecoder struct {
 	r io.Reader
-	d *Decoder
+	d *ByteDecoder
 }
 
 func NewReadDecoder(r io.Reader) *ReadDecoder {
-	return &ReadDecoder{r, NewDecoder(nil)}
+	return &ReadDecoder{r, NewByteDecoder(nil)}
 }
 
 func (d *ReadDecoder) Reset(r io.Reader) {
@@ -142,5 +142,23 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 		return ArrEnd, nil
 	default:
 		panic(fmt.Sprintln("BUG: got", t))
+	}
+}
+
+func (d *ReadDecoder) Skip() error {
+	c := 0
+	for {
+		t := d.Token()
+		switch {
+		case t.Error():
+			return t.Err
+		case t.Begin():
+			c++
+		case t.End():
+			c--
+		}
+		if c == 0 {
+			return nil
+		}
 	}
 }

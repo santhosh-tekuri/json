@@ -14,7 +14,7 @@
 
 package json
 
-func (d *Decoder) number() Token {
+func (d *ByteDecoder) number() Token {
 	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}

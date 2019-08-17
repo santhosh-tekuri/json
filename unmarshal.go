@@ -16,7 +16,7 @@ package json
 
 import "fmt"
 
-func (d *Decoder) Unmarshal() (v interface{}, err error) {
+func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 	t := d.Token()
 	switch t.Kind {
 	case Error:
@@ -68,9 +68,9 @@ func (d *Decoder) Unmarshal() (v interface{}, err error) {
 	}
 }
 
-type PropUnmarshaller func(de *Decoder, prop Token) error
+type PropUnmarshaller func(de Decoder, prop Token) error
 
-func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
+func UnmarshalObj(context string, d Decoder, f PropUnmarshaller) error {
 	t := d.Token()
 	if t.Null() {
 		return nil
@@ -98,9 +98,9 @@ func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
 	}
 }
 
-type ItemUnmarshaller func(de *Decoder) error
+type ItemUnmarshaller func(de Decoder) error
 
-func (d *Decoder) UnmarshalArr(context string, f ItemUnmarshaller) error {
+func UnmarshalArr(context string, d Decoder, f ItemUnmarshaller) error {
 	t := d.Token()
 	if t.Null() {
 		return nil

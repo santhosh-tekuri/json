@@ -137,7 +137,7 @@ func TestDecoder(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			de := json.NewDecoder([]byte(tt.doc))
+			de := json.NewByteDecoder([]byte(tt.doc))
 			gode := gojson.NewDecoder(strings.NewReader(tt.doc))
 			gode.UseNumber()
 			for {
@@ -225,7 +225,7 @@ func TestDecoder_Unmarshal(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			de := json.NewDecoder(doc)
+			de := json.NewByteDecoder(doc)
 			got, err := de.Unmarshal()
 			if err != nil {
 				t.Fatal(err)
@@ -252,7 +252,7 @@ func TestNoAllocs(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			de := json.NewDecoder(doc)
+			de := json.NewByteDecoder(doc)
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
 			allocs := memStats.Mallocs
@@ -286,7 +286,7 @@ func BenchmarkDecoder(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.Run(filepath.Base(f), func(b *testing.B) {
-			de := json.NewDecoder(doc)
+			de := json.NewByteDecoder(doc)
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -318,7 +318,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 		}
 		b.Run(filepath.Base(f), func(b *testing.B) {
 			b.Run("mine", func(b *testing.B) {
-				de := json.NewDecoder(doc)
+				de := json.NewByteDecoder(doc)
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {

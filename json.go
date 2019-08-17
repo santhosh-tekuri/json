@@ -18,7 +18,14 @@ import (
 	"strconv"
 )
 
-type Decoder struct {
+type Decoder interface {
+	Token() Token
+	Peek() Token
+	Skip() error
+	Unmarshal() (interface{}, error)
+}
+
+type ByteDecoder struct {
 	buf   []byte
 	pos   int
 	stack []byte
@@ -34,22 +41,22 @@ type Decoder struct {
 	sep byte
 }
 
-func NewDecoder(b []byte) *Decoder {
-	return &Decoder{buf: b, stack: make([]byte, 0, 50), empty: none, sep: ','}
+func NewByteDecoder(b []byte) *ByteDecoder {
+	return &ByteDecoder{buf: b, stack: make([]byte, 0, 50), empty: none, sep: ','}
 }
 
-func (d *Decoder) Reset(b []byte) {
+func (d *ByteDecoder) Reset(b []byte) {
 	d.buf, d.pos, d.stack, d.empty, d.sep = b, 0, d.stack[:0], none, ','
 }
 
-func (d *Decoder) Peek() Token {
+func (d *ByteDecoder) Peek() Token {
 	if d.peek.Kind == none {
 		d.peek = d.Token()
 	}
 	return d.peek
 }
 
-func (d *Decoder) Token() Token {
+func (d *ByteDecoder) Token() Token {
 	if d.peek.Kind != none {
 		t := d.peek
 		d.peek = Token{}
@@ -159,7 +166,7 @@ func (d *Decoder) Token() Token {
 	}
 }
 
-func (d *Decoder) match(m byte) bool {
+func (d *ByteDecoder) match(m byte) bool {
 	if d.pos < len(d.buf) && d.buf[d.pos] == m {
 		d.pos++
 		return true
@@ -171,7 +178,7 @@ func whitespace(p byte) bool {
 	return p == ' ' || p == '\t' || p == '\r' || p == '\n'
 }
 
-func (d *Decoder) Skip() error {
+func (d *ByteDecoder) Skip() error {
 	c := 0
 	for {
 		t := d.Token()
@@ -201,7 +208,7 @@ type SyntaxError struct {
 
 func (e *SyntaxError) Error() string { return e.msg }
 
-func (d *Decoder) error(context string) Token {
+func (d *ByteDecoder) error(context string) Token {
 	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
@@ -218,7 +225,7 @@ func IsUnexpectedEOF(err error) bool {
 	return ok && e.msg == unexpectedEOF
 }
 
-func (d *Decoder) unexpectedEOF() Token {
+func (d *ByteDecoder) unexpectedEOF() Token {
 	return Token{
 		Kind: Error,
 		Err:  &SyntaxError{unexpectedEOF, int64(d.pos)},
