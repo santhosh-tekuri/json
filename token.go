@@ -15,7 +15,6 @@
 package json
 
 import (
-	"errors"
 	"strconv"
 )
 
@@ -85,7 +84,7 @@ func (t Token) Obj(context string) error {
 	case ObjBegin:
 		return nil
 	default:
-		return errors.New(context + " expects object")
+		return &UnmarshalError{context, "object"}
 	}
 }
 
@@ -96,7 +95,7 @@ func (t Token) Arr(context string) error {
 	case ArrBegin:
 		return nil
 	default:
-		return errors.New(context + " expects array")
+		return &UnmarshalError{context, "array"}
 	}
 }
 
@@ -108,7 +107,7 @@ func (t Token) Str(context string) (string, error) {
 		s, _ := unquoteBytes(t.Data)
 		return string(s), nil
 	default:
-		return "", errors.New(context + " expects string")
+		return "", &UnmarshalError{context, "string"}
 	}
 }
 
@@ -119,7 +118,7 @@ func (t Token) Number(context string) (string, error) {
 	case Number:
 		return string(t.Data), nil
 	default:
-		return "", errors.New(context + " expects number")
+		return "", &UnmarshalError{context, "number"}
 	}
 }
 
@@ -131,7 +130,7 @@ func (t Token) Float64(context string) (float64, error) {
 	case Number:
 		return strconv.ParseFloat(string(t.Data), 64)
 	default:
-		return 0, errors.New(context + " expects number")
+		return 0, &UnmarshalError{context, "number"}
 	}
 }
 
@@ -143,11 +142,11 @@ func (t Token) Int64(context string) (int64, error) {
 	case Number:
 		i, err := strconv.ParseInt(string(t.Data), 10, 64)
 		if err != nil {
-			return 0, errors.New(context + " expects integer")
+			return 0, &UnmarshalError{context, "integer"}
 		}
 		return i, nil
 	default:
-		return 0, errors.New(context + " expects integer")
+		return 0, &UnmarshalError{context, "integer"}
 	}
 }
 
@@ -165,6 +164,6 @@ func (t Token) Bool(context string) (bool, error) {
 	case Boolean:
 		return t.Data[0] == 't', nil
 	default:
-		return false, errors.New(context + " expects boolean")
+		return false, &UnmarshalError{context, "boolean"}
 	}
 }

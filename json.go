@@ -15,7 +15,6 @@
 package json
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -191,106 +190,6 @@ func (d *Decoder) Skip() error {
 }
 
 // unmarshalling ---
-
-func (d *Decoder) Unmarshal() (v interface{}, err error) {
-	t := d.Token()
-	switch t.Kind {
-	case Error:
-		return nil, t.Err
-	case Null:
-		return nil, nil
-	case String:
-		s, _ := t.Str("")
-		return s, nil
-	case Number:
-		f, _ := t.Float64("")
-		return f, nil
-	case Boolean:
-		b, _ := t.Bool("")
-		return b, nil
-	case ObjBegin:
-		m := make(map[string]interface{})
-		for {
-			t = d.Token()
-			if t.Error() {
-				return nil, t.Err
-			}
-			if t.Kind == ObjEnd {
-				return m, nil
-			}
-			key, _ := t.Str("")
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			m[key] = v
-		}
-	case ArrBegin:
-		a := make([]interface{}, 0)
-		for {
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			if v == ArrEnd {
-				return a, nil
-			}
-			a = append(a, v)
-		}
-	case ArrEnd:
-		return ArrEnd, nil
-	default:
-		panic(fmt.Sprintln("BUG: got", t))
-	}
-}
-
-type PropUnmarshaller func(de *Decoder, prop Token) error
-
-func (d *Decoder) UnmarshalObj(context string, f PropUnmarshaller) error {
-	t := d.Token()
-	if t.Null() {
-		return nil
-	}
-	if err := t.Obj(context); err != nil {
-		return err
-	}
-	var err error
-	for {
-		t := d.Token()
-		switch {
-		case t.Error():
-			return t.Err
-		case t.End():
-			return nil
-		default:
-			if d.Peek().Null() {
-				d.Token()
-				continue
-			}
-			if err = f(d, t); err != nil {
-				return err
-			}
-		}
-	}
-}
-
-type ArrUnmarshaller func(de *Decoder) error
-
-func (d *Decoder) UnmarshalArr(context string, f ArrUnmarshaller) error {
-	t := d.Token()
-	if t.Null() {
-		return nil
-	}
-	if err := t.Arr(context); err != nil {
-		return err
-	}
-	for !d.Peek().End() {
-		if err := f(d); err != nil {
-			return err
-		}
-	}
-	return d.Token().Err
-}
 
 // errors ---
 
