@@ -57,6 +57,10 @@ func (t Token) Error() bool {
 	return t.Kind == Error
 }
 
+func (t Token) UnexpectedEOF() bool {
+	return t.Kind == Error && IsUnexpectedEOF(t.Err)
+}
+
 func (t Token) EOD() bool {
 	return t.Kind == EOD
 }
