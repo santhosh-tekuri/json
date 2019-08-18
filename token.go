@@ -107,6 +107,8 @@ func (t Token) String(context string) (string, error) {
 	switch t.Kind {
 	case Error:
 		return "", t.Err
+	case Null:
+		return "", nil
 	case String:
 		s, _ := unquoteBytes(t.Data)
 		return string(s), nil
@@ -131,6 +133,8 @@ func (t Token) Float64(context string) (float64, error) {
 	switch t.Kind {
 	case Error:
 		return 0, t.Err
+	case Null:
+		return 0, nil
 	case Number:
 		return strconv.ParseFloat(string(t.Data), 64)
 	default:
@@ -143,6 +147,8 @@ func (t Token) Int64(context string) (int64, error) {
 	switch t.Kind {
 	case Error:
 		return 0, t.Err
+	case Null:
+		return 0, nil
 	case Number:
 		i, err := strconv.ParseInt(string(t.Data), 10, 64)
 		if err != nil {
@@ -165,6 +171,8 @@ func (t Token) Bool(context string) (bool, error) {
 	switch t.Kind {
 	case Error:
 		return false, t.Err
+	case Null:
+		return false, nil
 	case Boolean:
 		return t.Data[0] == 't', nil
 	default:
