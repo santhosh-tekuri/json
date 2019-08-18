@@ -15,6 +15,7 @@
 package json
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -206,7 +207,7 @@ type SyntaxError struct {
 	Offset int64  // error occurred after reading Offset bytes
 }
 
-func (e *SyntaxError) Error() string { return e.msg }
+func (e *SyntaxError) Error() string { return fmt.Sprintf("json: %s", e.msg) }
 
 func (d *ByteDecoder) error(context string) Token {
 	if d.pos == len(d.buf) {

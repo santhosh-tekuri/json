@@ -124,5 +124,5 @@ type UnmarshalError struct {
 }
 
 func (e *UnmarshalError) Error() string {
-	return fmt.Sprintf("%s expects %s", e.Context, e.Type)
+	return fmt.Sprintf("json: %s expects %s", e.Context, e.Type)
 }
