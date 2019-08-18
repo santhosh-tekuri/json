@@ -31,6 +31,7 @@ func TestUnmarshal(t *testing.T) {
 		{"objarr_prop", `{"Addresses": [{"Street": "HSR"}, {"Street": "BEML"}]}`, employee{}},
 		{"objarr_nullitem", `{"Addresses": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 		{"interface_prop", `{"Notes1": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
+		{"interfacearr_prop", `{"Notes2": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

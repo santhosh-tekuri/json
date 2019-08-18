@@ -160,6 +160,10 @@ func generate(s *ast.StructType, sname string) {
 					printf(`%s = append(%s, item);`, rfield, rfield)
 					println("return err;")
 				}
+			case *ast.InterfaceType:
+				printf(`item, err := de.Unmarshal();`)
+				printf(`%s = append(%s, item);`, rfield, rfield)
+				println("return err;")
 			default:
 				printf("\n//%s %T\n", fname, t)
 				notImplemented()
