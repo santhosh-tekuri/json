@@ -32,7 +32,8 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				e.Addresses = append(e.Addresses, item)
 				return err
 			})
-
+		case prop.Eq("Notes1"):
+			e.Notes1, err = de.Unmarshal()
 		default:
 			err = de.Skip()
 		}

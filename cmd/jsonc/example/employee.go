@@ -13,6 +13,7 @@ type employee struct {
 	NickNames []string
 	Address   address
 	Addresses []address
+	Notes1    interface{}
 }
 
 type address struct {

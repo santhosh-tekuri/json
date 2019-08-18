@@ -99,6 +99,7 @@ func main() {
 	}
 	if todo > 0 {
 		fmt.Fprintln(os.Stderr, "CHECK TODOS")
+		os.Exit(1)
 	}
 }
 
@@ -164,6 +165,8 @@ func generate(s *ast.StructType, sname string) {
 				notImplemented()
 			}
 			println("})")
+		case *ast.InterfaceType:
+			printf(`%s, err = de.Unmarshal();`, rfield)
 		default:
 			printf("\n//%s %T\n", fname, t)
 			notImplemented()
