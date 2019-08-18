@@ -153,22 +153,22 @@ func generate(s *ast.StructType, sname string) {
 					method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
 					printf(`item, err := de.Token().%s("%s[]");`, method, context)
 					printf(`%s = append(%s, item);`, rfield, rfield)
-					println("return err;")
+					printf("return err;")
 				default:
 					printf(`item := %s{};`, t.Name)
 					printf(`err := item.Unmarshal(de);`)
 					printf(`%s = append(%s, item);`, rfield, rfield)
-					println("return err;")
+					printf("return err;")
 				}
 			case *ast.InterfaceType:
 				printf(`item, err := de.Unmarshal();`)
 				printf(`%s = append(%s, item);`, rfield, rfield)
-				println("return err;")
+				printf("return err;")
 			default:
 				printf("\n//%s %T\n", fname, t)
 				notImplemented()
 			}
-			println("})")
+			printf("});")
 		case *ast.InterfaceType:
 			printf(`%s, err = de.Unmarshal();`, rfield)
 		default:

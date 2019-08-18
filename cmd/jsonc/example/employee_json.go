@@ -40,7 +40,6 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				e.Notes2 = append(e.Notes2, item)
 				return err
 			})
-
 		default:
 			err = de.Skip()
 		}
