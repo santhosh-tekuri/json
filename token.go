@@ -152,7 +152,7 @@ func (t Token) Int64(context string) (int64, error) {
 	case Number:
 		i, err := strconv.ParseInt(string(t.Data), 10, 64)
 		if err != nil {
-			return 0, &UnmarshalError{context, "integer, got " + string(t.Data)}
+			return 0, &UnmarshalError{context, "integer, got number " + string(t.Data)}
 		}
 		return i, nil
 	default:
