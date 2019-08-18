@@ -42,10 +42,23 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			})
 		case prop.Eq("Notes3"):
 			e.Notes3 = make(map[string]interface{})
-			err = json.UnmarshalObj("e.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
+			err = json.UnmarshalObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
 				v, err := de.Unmarshal()
 				e.Notes3[k] = v
+				return err
+			})
+		case prop.Eq("Contacts"):
+			e.Contacts = make(map[string][]string)
+			err = json.UnmarshalObj("employee.Contacts", de, func(de json.Decoder, prop json.Token) (err error) {
+				k, _ := prop.String("")
+				var v []string
+				err = json.UnmarshalArr("employee.Contacts{}", de, func(de json.Decoder) error {
+					item, err := de.Token().String("employee.Contacts{}[]")
+					v = append(v, item)
+					return err
+				})
+				e.Contacts[k] = v
 				return err
 			})
 		default:

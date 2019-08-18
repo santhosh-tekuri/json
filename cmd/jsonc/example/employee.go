@@ -16,6 +16,7 @@ type employee struct {
 	Notes1    interface{}
 	Notes2    []interface{}
 	Notes3    map[string]interface{}
+	Contacts  map[string][]string
 }
 
 type address struct {

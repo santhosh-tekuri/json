@@ -135,73 +135,7 @@ func generate(s *ast.StructType, sname string) {
 		printf(`case prop.Eq("%s"):`, prop)
 		rfield := r + "." + fname
 		context := sname + "." + fname
-		switch t := field.Type.(type) {
-		case *ast.Ident:
-			switch t.Name {
-			case "string", "float64", "bool", "int", "int64":
-				method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
-				printf(`%s, err = de.Token().%s("%s");`, rfield, method, context)
-			default:
-				printf(`err = %s.Unmarshal(de);`, rfield)
-			}
-		case *ast.InterfaceType:
-			printf(`%s, err = de.Unmarshal();`, rfield)
-		case *ast.ArrayType:
-			printf(`err = json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, context)
-			switch t := t.Elt.(type) {
-			case *ast.Ident:
-				switch t.Name {
-				case "string", "float64", "bool", "int", "int64":
-					method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
-					printf(`item, err := de.Token().%s("%s[]");`, method, context)
-					printf(`%s = append(%s, item);`, rfield, rfield)
-					printf("return err;")
-				default:
-					printf(`item := %s{};`, t.Name)
-					printf(`err := item.Unmarshal(de);`)
-					printf(`%s = append(%s, item);`, rfield, rfield)
-					printf("return err;")
-				}
-			case *ast.InterfaceType:
-				printf(`item, err := de.Unmarshal();`)
-				printf(`%s = append(%s, item);`, rfield, rfield)
-				printf("return err;")
-			default:
-				printf("\n//%s %T\n", fname, t)
-				notImplemented()
-			}
-			printf("});")
-		case *ast.MapType:
-			var ktype string
-			switch k := t.Key.(type) {
-			case *ast.Ident:
-				switch k.Name {
-				case "string":
-					ktype = "string"
-				}
-			}
-			var vtype string
-			switch t.Value.(type) {
-			case *ast.InterfaceType:
-				vtype = "interface{}"
-			}
-			if ktype == "" || vtype == "" {
-				printf("\n// map[%s]%T\n", ktype, t.Value)
-				notImplemented()
-				continue
-			}
-			printf(`%s = make(map[%s]%s);`, rfield, ktype, vtype)
-			printf(`err = json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, rfield)
-			printf(`k, _ := prop.String("");`)
-			printf(`v, err := de.Unmarshal();`)
-			printf(`%s[k] = v;`, rfield)
-			printf("return err;")
-			printf("});")
-		default:
-			printf("\n//%s %T\n", fname, t)
-			notImplemented()
-		}
-
+		unmarshal(rfield, "=", context, field.Type)
 	}
 	println(`
 		default:
@@ -210,6 +144,51 @@ func generate(s *ast.StructType, sname string) {
 		return
 	})
 	}`)
+}
+
+func unmarshal(lhs, equals, context string, t ast.Expr) {
+	switch t := t.(type) {
+	case *ast.Ident:
+		switch t.Name {
+		case "string", "float64", "bool", "int", "int64":
+			method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
+			printf(`%s, err %s de.Token().%s("%s");`, lhs, equals, method, context)
+		default:
+			if equals == ":=" {
+				printf(`%s := %s{};`, lhs, t.Name)
+			}
+			printf(`err %s %s.Unmarshal(de);`, equals, lhs)
+		}
+	case *ast.InterfaceType:
+		printf(`%s, err %s de.Unmarshal();`, lhs, equals)
+	case *ast.ArrayType:
+		if equals == ":=" {
+			printf(`var %s []%s;`, lhs, expr2String(t.Elt))
+			equals = "="
+		}
+		printf(`err %s json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, equals, context)
+		unmarshal("item", ":=", context+"[]", t.Elt)
+		printf(`%s = append(%s, item);`, lhs, lhs)
+		printf("return err;")
+		printf("});")
+	case *ast.MapType:
+		ktype := expr2String(t.Key)
+		if ktype != "string" {
+			printf("\n// map with non-string key not implemented\n")
+			notImplemented()
+			return
+		}
+		printf(`%s %s make(%s);`, lhs, equals, expr2String(t))
+		printf(`err %s json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
+		printf(`k, _ := prop.String("");`)
+		unmarshal("v", ":=", context+"{}", t.Value)
+		printf(`%s[k] = v;`, lhs)
+		printf("return err;")
+		printf("});")
+	default:
+		printf("\n//%s %T\n", lhs, t)
+		notImplemented()
+	}
 }
 
 // helpers ---
@@ -243,4 +222,19 @@ func findStruct(name string) *ast.StructType {
 		}
 	}
 	return nil
+}
+
+func expr2String(t ast.Expr) string {
+	switch t := t.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.InterfaceType:
+		return "interface{}"
+	case *ast.ArrayType:
+		return "[]" + expr2String(t.Elt)
+	case *ast.MapType:
+		return "map[" + expr2String(t.Key) + "]" + expr2String(t.Value)
+	default:
+		panic(fmt.Sprintf("expr2String(%T)", t))
+	}
 }
