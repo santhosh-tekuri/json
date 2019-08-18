@@ -167,10 +167,12 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 			equals = "="
 		}
 		printf(`err %s json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, equals, context)
-		unmarshal("item", ":=", context+"[]", t.Elt)
-		printf(`%s = append(%s, item);`, lhs, lhs)
+		item := newVar("item")
+		unmarshal(item, ":=", context+"[]", t.Elt)
+		printf(`%s = append(%s, %s);`, lhs, lhs, item)
 		printf("return err;")
 		printf("});")
+		releaseVar(item)
 	case *ast.MapType:
 		ktype := expr2String(t.Key)
 		if ktype != "string" {
@@ -181,14 +183,36 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 		printf(`%s %s make(%s);`, lhs, equals, expr2String(t))
 		printf(`err %s json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
 		printf(`k, _ := prop.String("");`)
-		unmarshal("v", ":=", context+"{}", t.Value)
-		printf(`%s[k] = v;`, lhs)
+		v := newVar("v")
+		unmarshal(v, ":=", context+"{}", t.Value)
+		printf(`%s[k] = %s;`, lhs, v)
 		printf("return err;")
 		printf("});")
+		releaseVar(v)
 	default:
 		printf("\n//%s %T\n", lhs, t)
 		notImplemented()
 	}
+}
+
+var scope = make(map[string]struct{})
+
+func newVar(name string) string {
+	if _, ok := scope[name]; !ok {
+		return name
+	}
+	i := 1
+	for {
+		n := fmt.Sprintf("%s%d", name, i)
+		if _, ok := scope[n]; !ok {
+			return n
+		}
+		i++
+	}
+}
+
+func releaseVar(name string) {
+	delete(scope, name)
 }
 
 // helpers ---
