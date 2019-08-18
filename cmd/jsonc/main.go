@@ -144,6 +144,8 @@ func generate(s *ast.StructType, sname string) {
 			default:
 				printf(`err = %s.Unmarshal(de);`, rfield)
 			}
+		case *ast.InterfaceType:
+			printf(`%s, err = de.Unmarshal();`, rfield)
 		case *ast.ArrayType:
 			printf(`err = json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, context)
 			switch t := t.Elt.(type) {
@@ -169,8 +171,32 @@ func generate(s *ast.StructType, sname string) {
 				notImplemented()
 			}
 			printf("});")
-		case *ast.InterfaceType:
-			printf(`%s, err = de.Unmarshal();`, rfield)
+		case *ast.MapType:
+			var ktype string
+			switch k := t.Key.(type) {
+			case *ast.Ident:
+				switch k.Name {
+				case "string":
+					ktype = "string"
+				}
+			}
+			var vtype string
+			switch t.Value.(type) {
+			case *ast.InterfaceType:
+				vtype = "interface{}"
+			}
+			if ktype == "" || vtype == "" {
+				printf("\n// map[%s]%T\n", ktype, t.Value)
+				notImplemented()
+				continue
+			}
+			printf(`%s = make(map[%s]%s);`, rfield, ktype, vtype)
+			printf(`err = json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, rfield)
+			printf(`k, _ := prop.String("");`)
+			printf(`v, err := de.Unmarshal();`)
+			printf(`%s[k] = v;`, rfield)
+			printf("return err;")
+			printf("});")
 		default:
 			printf("\n//%s %T\n", fname, t)
 			notImplemented()

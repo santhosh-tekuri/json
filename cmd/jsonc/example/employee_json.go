@@ -40,6 +40,14 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				e.Notes2 = append(e.Notes2, item)
 				return err
 			})
+		case prop.Eq("Notes3"):
+			e.Notes3 = make(map[string]interface{})
+			err = json.UnmarshalObj("e.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
+				k, _ := prop.String("")
+				v, err := de.Unmarshal()
+				e.Notes3[k] = v
+				return err
+			})
 		default:
 			err = de.Skip()
 		}
