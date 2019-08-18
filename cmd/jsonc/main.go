@@ -21,6 +21,7 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"strconv"
@@ -40,6 +41,7 @@ func usage() {
 }
 
 func main() {
+	output := flag.String("o", "", "output file")
 	tags := flag.String("tags", "", "space-separated list of build tags")
 	flag.Parse()
 	flag.Usage = usage
@@ -87,7 +89,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, "COULD NOT GOFMT")
 		os.Exit(1)
 	}
-	fmt.Printf("%s", b)
+	if *output != "" {
+		if err := ioutil.WriteFile(*output, b, 0666); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Printf("%s", b)
+	}
 	if todo > 0 {
 		fmt.Fprintln(os.Stderr, "CHECK TODOS")
 	}
