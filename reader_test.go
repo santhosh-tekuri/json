@@ -84,16 +84,16 @@ func TestReader_Decode(t *testing.T) {
 					if gotok != gojson.Delim(']') {
 						t.Fatal()
 					}
-				case json.String:
+				case json.Str:
 					if s, ok := gotok.(string); !ok || !tok.Eq(s) {
 						tok.Eq(s)
 						t.Fatal()
 					}
-				case json.Number:
+				case json.Num:
 					if s, ok := gotok.(gojson.Number); !ok || string(s) != string(tok.Data) {
 						t.Fatalf("number: got %q want %q", string(tok.Data), s)
 					}
-				case json.Boolean:
+				case json.Bool:
 					b, _ := tok.Bool("")
 					if b1, ok := gotok.(bool); !ok || b != b1 {
 						t.Fatal()

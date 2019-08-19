@@ -153,14 +153,14 @@ func (d *ByteDecoder) Token() Token {
 		d.mark = d.pos
 		d.pos++
 		if d.match('r') && d.match('u') && d.match('e') {
-			return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
+			return Token{Kind: Bool, Data: d.buf[d.mark:d.pos]}
 		}
 		return d.error("in literal true")
 	case 'f':
 		d.mark = d.pos
 		d.pos++
 		if d.match('a') && d.match('l') && d.match('s') && d.match('e') {
-			return Token{Kind: Boolean, Data: d.buf[d.mark:d.pos]}
+			return Token{Kind: Bool, Data: d.buf[d.mark:d.pos]}
 		}
 		return d.error("in literal false")
 	default:

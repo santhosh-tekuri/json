@@ -23,13 +23,13 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 		return nil, t.Err
 	case Null:
 		return nil, nil
-	case String:
+	case Str:
 		s, _ := t.String("")
 		return s, nil
-	case Number:
+	case Num:
 		f, _ := t.Float64("")
 		return f, nil
-	case Boolean:
+	case Bool:
 		b, _ := t.Bool("")
 		return b, nil
 	case ObjBegin:

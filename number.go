@@ -74,7 +74,7 @@ func (d *ByteDecoder) number() Token {
 		}
 	}
 
-	return Token{Kind: Number, Data: d.buf[d.mark:d.pos]}
+	return Token{Kind: Num, Data: d.buf[d.mark:d.pos]}
 }
 
 func digit(p byte) bool {

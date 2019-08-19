@@ -57,7 +57,7 @@ func (d *ReadDecoder) Token() Token {
 		} else {
 			t = d.d.Token()
 		}
-		if t.Kind == Number {
+		if t.Kind == Num {
 			if d.d.pos < len(d.d.buf) {
 				return t
 			}
@@ -103,7 +103,7 @@ func (d *ReadDecoder) Marshal() ([]byte, error) {
 		return nil, t.Err
 	case Null:
 		return []byte("null"), nil
-	case String, Number, Boolean:
+	case Str, Num, Bool:
 		buf := make([]byte, len(t.Data))
 		copy(buf, t.Data)
 		return buf, nil
@@ -124,7 +124,7 @@ func (d *ReadDecoder) marshal(buf *bytes.Buffer) error {
 		return t.Err
 	case Null:
 		buf.WriteString("null")
-	case String, Number, Boolean:
+	case Str, Num, Bool:
 		buf.Write(t.Data)
 	case ObjBegin:
 		buf.WriteByte('{')
@@ -180,13 +180,13 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 		return nil, t.Err
 	case Null:
 		return nil, nil
-	case String:
+	case Str:
 		s, _ := t.String("")
 		return s, nil
-	case Number:
+	case Num:
 		f, _ := t.Float64("")
 		return f, nil
-	case Boolean:
+	case Bool:
 		b, _ := t.Bool("")
 		return b, nil
 	case ObjBegin:
