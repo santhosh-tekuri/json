@@ -61,6 +61,8 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				e.Contacts[k] = v
 				return err
 			})
+		case prop.Eq("Raw"):
+			e.Raw, err = de.Marshal()
 		default:
 			err = de.Skip()
 		}

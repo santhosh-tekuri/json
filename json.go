@@ -23,6 +23,7 @@ type Decoder interface {
 	Token() Token
 	Peek() Token
 	Skip() error
+	Marshal() ([]byte, error)
 	Unmarshal() (interface{}, error)
 }
 
@@ -195,6 +196,33 @@ func (d *ByteDecoder) Skip() error {
 			return nil
 		}
 	}
+}
+
+func (d *ByteDecoder) MarshalInternal() ([]byte, error) {
+	pos := d.pos
+	switch d.peek.Kind {
+	case none:
+	case ObjBegin, ObjEnd, ArrBegin, ArrEnd:
+		pos--
+	case Null:
+		pos -= 4
+	default:
+		pos -= len(d.peek.Data)
+	}
+	if err := d.Skip(); err != nil {
+		return nil, err
+	}
+	return d.buf[pos:d.pos], nil
+}
+
+func (d *ByteDecoder) Marshal() ([]byte, error) {
+	interal, err := d.MarshalInternal()
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, len(interal))
+	copy(buf, interal)
+	return buf, nil
 }
 
 // unmarshalling ---

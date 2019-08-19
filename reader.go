@@ -15,6 +15,7 @@
 package json
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 )
@@ -93,6 +94,83 @@ func (d *ReadDecoder) Token() Token {
 		}
 		return Token{Kind: Error, Err: err}
 	}
+}
+
+func (d *ReadDecoder) Marshal() ([]byte, error) {
+	t := d.Token()
+	switch t.Kind {
+	case Error:
+		return nil, t.Err
+	case Null:
+		return []byte("null"), nil
+	case String, Number, Boolean:
+		buf := make([]byte, len(t.Data))
+		copy(buf, t.Data)
+		return buf, nil
+	default:
+		d.d.peek = t
+		buf := new(bytes.Buffer)
+		if err := d.marshal(buf); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+}
+
+func (d *ReadDecoder) marshal(buf *bytes.Buffer) error {
+	t := d.Token()
+	switch t.Kind {
+	case Error:
+		return t.Err
+	case Null:
+		buf.WriteString("null")
+	case String, Number, Boolean:
+		buf.Write(t.Data)
+	case ObjBegin:
+		buf.WriteByte('{')
+		comma := false
+		for {
+			t = d.Token()
+			switch t.Kind {
+			case Error:
+				return t.Err
+			case ObjEnd:
+				buf.WriteByte('}')
+				return nil
+			}
+			if comma {
+				buf.WriteByte(',')
+			}
+			comma = true
+			buf.Write(t.Data) // key
+			buf.WriteByte(':')
+			if err := d.marshal(buf); err != nil {
+				return err
+			}
+		}
+	case ArrBegin:
+		buf.WriteByte('[')
+		comma := false
+		for {
+			switch d.Peek().Kind {
+			case Error:
+				d.Token()
+				return t.Err
+			case ArrEnd:
+				d.Token()
+				buf.WriteByte(']')
+				return nil
+			}
+			if comma {
+				buf.WriteByte(',')
+			}
+			comma = true
+			if err := d.marshal(buf); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {

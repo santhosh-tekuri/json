@@ -1,5 +1,7 @@
 package example
 
+import "encoding/json"
+
 //go:generate jsonc -o employee_json.go employee address
 
 type employee struct {
@@ -17,6 +19,7 @@ type employee struct {
 	Notes2    []interface{}
 	Notes3    map[string]interface{}
 	Contacts  map[string][]string
+	Raw       json.RawMessage
 }
 
 type address struct {

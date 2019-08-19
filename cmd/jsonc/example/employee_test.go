@@ -3,6 +3,7 @@ package example
 import (
 	gojson "encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/santhosh-tekuri/json"
@@ -33,11 +34,11 @@ func TestUnmarshal(t *testing.T) {
 		{"interface_prop", `{"Notes1": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 		{"interfacearr_prop", `{"Notes2": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 		{"mapstrinterface_prop", `{"Notes3": {"Street": "HSR", "City": "BEML"}}`, employee{}},
+		{"rawMessage_prop", `{"Raw": {"Street":"HSR","City":"BEML"}}`, employee{}},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		f := func(t *testing.T, de json.Decoder) {
 			got := tt.val
-			de := json.NewByteDecoder([]byte(tt.doc))
 			gerr := got.Unmarshal(de)
 			if gerr != nil {
 				t.Log("gerr:", gerr)
@@ -52,10 +53,16 @@ func TestUnmarshal(t *testing.T) {
 				t.Fatal("errors did not match")
 			}
 			if gerr == nil && !reflect.DeepEqual(got, want) {
-				t.Log("got:", got)
-				t.Log("want:", want)
+				t.Log("got:", string(got.Raw))
+				t.Log("want:", string(want.Raw))
 				t.Fatal("values did not match")
 			}
+		}
+		t.Run("bytes_"+tt.name, func(t *testing.T) {
+			f(t, json.NewByteDecoder([]byte(tt.doc)))
+		})
+		t.Run("reader_"+tt.name, func(t *testing.T) {
+			f(t, json.NewReadDecoder(strings.NewReader(tt.doc)))
 		})
 	}
 }

@@ -189,8 +189,15 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 		printf("return err;")
 		printf("});")
 		releaseVar(v)
+	case *ast.SelectorExpr:
+		if expr2String(t) != "json.RawMessage" {
+			printf("\n//%s %s %#v\n", lhs, expr2String(t), t)
+			notImplemented()
+			return
+		}
+		printf(`%s, err %s de.Marshal();`, lhs, equals)
 	default:
-		printf("\n//%s %T\n", lhs, t)
+		printf("\n//%s %s %#v\n", lhs, expr2String(t), t)
 		notImplemented()
 	}
 }
@@ -258,6 +265,8 @@ func expr2String(t ast.Expr) string {
 		return "[]" + expr2String(t.Elt)
 	case *ast.MapType:
 		return "map[" + expr2String(t.Key) + "]" + expr2String(t.Value)
+	case *ast.SelectorExpr:
+		return expr2String(t.X) + "." + expr2String(t.Sel)
 	default:
 		panic(fmt.Sprintf("expr2String(%T)", t))
 	}
