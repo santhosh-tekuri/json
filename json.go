@@ -24,7 +24,7 @@ type Decoder interface {
 	Peek() Token
 	Skip() error
 	Marshal() ([]byte, error)
-	Unmarshal() (interface{}, error)
+	Unmarshal(useNumber bool) (interface{}, error)
 }
 
 type ByteDecoder struct {

@@ -16,7 +16,7 @@ package json
 
 import "fmt"
 
-func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
+func (d *ByteDecoder) Unmarshal(useNumber bool) (v interface{}, err error) {
 	t := d.Token()
 	switch t.Kind {
 	case Error:
@@ -24,14 +24,14 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 	case Null:
 		return nil, nil
 	case Str:
-		s, _ := t.String("")
-		return s, nil
+		return t.String("")
 	case Num:
-		f, _ := t.Float64("")
-		return f, nil
+		if useNumber {
+			return t.Number("")
+		}
+		return t.Float64("")
 	case Bool:
-		b, _ := t.Bool("")
-		return b, nil
+		return t.Bool("")
 	case ObjBegin:
 		m := make(map[string]interface{})
 		for {
@@ -43,7 +43,7 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 				return m, nil
 			}
 			key, _ := t.String("")
-			v, err := d.Unmarshal()
+			v, err := d.Unmarshal(useNumber)
 			if err != nil {
 				return nil, err
 			}
@@ -52,7 +52,7 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 	case ArrBegin:
 		a := make([]interface{}, 0)
 		for {
-			v, err := d.Unmarshal()
+			v, err := d.Unmarshal(useNumber)
 			if err != nil {
 				return nil, err
 			}

@@ -226,7 +226,7 @@ func TestDecoder_Unmarshal(t *testing.T) {
 				t.Fatal(err)
 			}
 			de := json.NewByteDecoder(doc)
-			got, err := de.Unmarshal()
+			got, err := de.Unmarshal(false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -322,7 +322,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					v, err = de.Unmarshal()
+					v, err = de.Unmarshal(false)
 					if err != nil {
 						b.Fatal(err)
 					}
