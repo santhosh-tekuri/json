@@ -33,10 +33,10 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Notes1"):
-			e.Notes1, err = de.Unmarshal(false)
+			e.Notes1, err = de.Unmarshal()
 		case prop.Eq("Notes2"):
 			err = json.UnmarshalArr("employee.Notes2", de, func(de json.Decoder) error {
-				item, err := de.Unmarshal(false)
+				item, err := de.Unmarshal()
 				e.Notes2 = append(e.Notes2, item)
 				return err
 			})
@@ -44,7 +44,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			e.Notes3 = make(map[string]interface{})
 			err = json.UnmarshalObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
-				v, err := de.Unmarshal(false)
+				v, err := de.Unmarshal()
 				e.Notes3[k] = v
 				return err
 			})

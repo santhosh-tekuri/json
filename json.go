@@ -24,7 +24,9 @@ type Decoder interface {
 	Peek() Token
 	Skip() error
 	Marshal() ([]byte, error)
-	Unmarshal(useNumber bool) (interface{}, error)
+	// UseNumber causes the Decoder to unmarshal a number into an interface{} as a Number instead of as a float64.
+	UseNumber()
+	Unmarshal() (interface{}, error)
 }
 
 type ByteDecoder struct {
@@ -41,6 +43,7 @@ type ByteDecoder struct {
 	//    if colon read ':'
 	// }
 	sep byte
+	useNumber bool
 }
 
 func NewByteDecoder(b []byte) *ByteDecoder {

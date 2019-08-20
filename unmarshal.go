@@ -16,7 +16,12 @@ package json
 
 import "fmt"
 
-func (d *ByteDecoder) Unmarshal(useNumber bool) (v interface{}, err error) {
+// UseNumber causes the Decoder to unmarshal a number into an interface{} as a Number instead of as a float64.
+func (d *ByteDecoder) UseNumber() {
+	d.useNumber = true
+}
+
+func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 	t := d.Token()
 	switch t.Kind {
 	case Error:
@@ -26,7 +31,7 @@ func (d *ByteDecoder) Unmarshal(useNumber bool) (v interface{}, err error) {
 	case Str:
 		return t.String("")
 	case Num:
-		if useNumber {
+		if d.useNumber {
 			return t.Number("")
 		}
 		return t.Float64("")
@@ -43,7 +48,7 @@ func (d *ByteDecoder) Unmarshal(useNumber bool) (v interface{}, err error) {
 				return m, nil
 			}
 			key, _ := t.String("")
-			v, err := d.Unmarshal(useNumber)
+			v, err := d.Unmarshal()
 			if err != nil {
 				return nil, err
 			}
@@ -52,7 +57,7 @@ func (d *ByteDecoder) Unmarshal(useNumber bool) (v interface{}, err error) {
 	case ArrBegin:
 		a := make([]interface{}, 0)
 		for {
-			v, err := d.Unmarshal(useNumber)
+			v, err := d.Unmarshal()
 			if err != nil {
 				return nil, err
 			}
