@@ -35,6 +35,7 @@ func TestUnmarshal(t *testing.T) {
 		{"interfacearr_prop", `{"Notes2": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 		{"mapstrinterface_prop", `{"Notes3": {"Street": "HSR", "City": "BEML"}}`, employee{}},
 		{"rawMessage_prop", `{"Raw": {"Street":"HSR","City":"BEML"}}`, employee{}},
+		{"anonstruct_prop", `{"Department": {"Name":"finance","Manager":"scott"}}`, employee{}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {

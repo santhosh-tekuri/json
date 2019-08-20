@@ -105,11 +105,16 @@ func main() {
 
 func generate(s *ast.StructType, sname string) {
 	r := strings.ToLower(sname[:1])
-	printf(`
-	func (%s *%s) Unmarshal(de json.Decoder) error {
-		return json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {
+	printf("func (%s *%s) Unmarshal(de json.Decoder) error {\n", r, sname)
+	printf(`return `)
+	unmarshalStruct(s, r, sname)
+	println(`}`)
+}
+
+func unmarshalStruct(s *ast.StructType, lhs, context string) {
+	printf(`json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {
 			switch {
-	`, r, sname, sname)
+	`, context)
 
 	for _, field := range s.Fields.List {
 		fname := field.Names[0].Name
@@ -120,7 +125,7 @@ func generate(s *ast.StructType, sname string) {
 		if field.Tag != nil {
 			tag, err := strconv.Unquote(field.Tag.Value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "struct tag %s.%s: %s", sname, fname, err)
+				fmt.Fprintf(os.Stderr, "struct tag %s.%s: %s", context, fname, err)
 				os.Exit(1)
 			}
 			tag = reflect.StructTag(tag).Get("json")
@@ -133,17 +138,16 @@ func generate(s *ast.StructType, sname string) {
 			}
 		}
 		printf(`case prop.Eq("%s"):`, prop)
-		rfield := r + "." + fname
-		context := sname + "." + fname
-		unmarshal(rfield, "=", context, field.Type)
+		lhs := lhs + "." + fname
+		context := context + "." + fname
+		unmarshal(lhs, "=", context, field.Type)
 	}
 	println(`
 		default:
 			err = de.Skip()
 		}
 		return
-	})
-	}`)
+	});`)
 }
 
 func unmarshal(lhs, equals, context string, t ast.Expr) {
@@ -160,7 +164,7 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 			printf(`err %s %s.Unmarshal(de);`, equals, lhs)
 		}
 	case *ast.InterfaceType:
-		printf(`%s, err %s de.Unmarshal();`, lhs, equals)
+		printf(`%s, err %s de.Unmarshal(false);`, lhs, equals)
 	case *ast.ArrayType:
 		if equals == ":=" {
 			printf(`var %s []%s;`, lhs, expr2String(t.Elt))
@@ -196,6 +200,10 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 			return
 		}
 		printf(`%s, err %s de.Marshal();`, lhs, equals)
+	case *ast.StructType:
+		printf(`%s %s %s{};`, lhs, equals, expr2String(t))
+		printf("err %s", equals)
+		unmarshalStruct(t, lhs, context)
 	default:
 		printf("\n//%s %s %#v\n", lhs, expr2String(t), t)
 		notImplemented()

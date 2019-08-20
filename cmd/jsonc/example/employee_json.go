@@ -33,10 +33,10 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Notes1"):
-			e.Notes1, err = de.Unmarshal()
+			e.Notes1, err = de.Unmarshal(false)
 		case prop.Eq("Notes2"):
 			err = json.UnmarshalArr("employee.Notes2", de, func(de json.Decoder) error {
-				item, err := de.Unmarshal()
+				item, err := de.Unmarshal(false)
 				e.Notes2 = append(e.Notes2, item)
 				return err
 			})
@@ -44,7 +44,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			e.Notes3 = make(map[string]interface{})
 			err = json.UnmarshalObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
-				v, err := de.Unmarshal()
+				v, err := de.Unmarshal(false)
 				e.Notes3[k] = v
 				return err
 			})
@@ -63,13 +63,29 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			})
 		case prop.Eq("Raw"):
 			e.Raw, err = de.Marshal()
+		case prop.Eq("Department"):
+			e.Department = struct {
+				Name    string
+				Manager string
+			}{}
+			err = json.UnmarshalObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
+				switch {
+				case prop.Eq("Name"):
+					e.Department.Name, err = de.Token().String("employee.Department.Name")
+				case prop.Eq("Manager"):
+					e.Department.Manager, err = de.Token().String("employee.Department.Manager")
+				default:
+					err = de.Skip()
+				}
+				return
+			})
+
 		default:
 			err = de.Skip()
 		}
 		return
 	})
 }
-
 func (a *address) Unmarshal(de json.Decoder) error {
 	return json.UnmarshalObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
