@@ -267,6 +267,17 @@ func expr2String(t ast.Expr) string {
 		return "map[" + expr2String(t.Key) + "]" + expr2String(t.Value)
 	case *ast.SelectorExpr:
 		return expr2String(t.X) + "." + expr2String(t.Sel)
+	case *ast.StructType:
+		var buf = strings.Builder{}
+		buf.WriteString("struct {")
+		for _, f := range t.Fields.List {
+			buf.WriteString(f.Names[0].Name)
+			buf.WriteString(" ")
+			buf.WriteString(expr2String(f.Type))
+			buf.WriteString(";")
+		}
+		buf.WriteString("}")
+		return buf.String()
 	default:
 		panic(fmt.Sprintf("expr2String(%T)", t))
 	}
