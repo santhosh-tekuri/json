@@ -282,6 +282,10 @@ func expr2String(t ast.Expr) string {
 			buf.WriteString(f.Names[0].Name)
 			buf.WriteString(" ")
 			buf.WriteString(expr2String(f.Type))
+			if f.Tag != nil {
+				buf.WriteString(" ")
+				buf.WriteString(f.Tag.Value)
+			}
 			buf.WriteString(";")
 		}
 		buf.WriteString("}")

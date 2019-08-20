@@ -35,7 +35,7 @@ func TestUnmarshal(t *testing.T) {
 		{"interfacearr_prop", `{"Notes2": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, employee{}},
 		{"mapstrinterface_prop", `{"Notes3": {"Street": "HSR", "City": "BEML"}}`, employee{}},
 		{"rawMessage_prop", `{"Raw": {"Street":"HSR","City":"BEML"}}`, employee{}},
-		{"anonstruct_prop", `{"Department": {"Name":"finance","Manager":"scott"}}`, employee{}},
+		{"anonstruct_prop", `{"Department": {"name":"finance","Manager":"scott"}}`, employee{}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
@@ -54,8 +54,8 @@ func TestUnmarshal(t *testing.T) {
 				t.Fatal("errors did not match")
 			}
 			if gerr == nil && !reflect.DeepEqual(got, want) {
-				t.Log("got:", string(got.Raw))
-				t.Log("want:", string(want.Raw))
+				t.Log("got:", got)
+				t.Log("want:", want)
 				t.Fatal("values did not match")
 			}
 		}

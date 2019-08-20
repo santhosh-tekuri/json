@@ -21,7 +21,7 @@ type employee struct {
 	Contacts   map[string][]string
 	Raw        json.RawMessage
 	Department struct {
-		Name    string
+		Name    string `json:"name"`
 		Manager string
 	}
 }
