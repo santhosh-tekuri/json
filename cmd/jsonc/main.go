@@ -201,7 +201,6 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 		}
 		printf(`%s, err %s de.Marshal();`, lhs, equals)
 	case *ast.StructType:
-		printf(`%s %s %s{};`, lhs, equals, expr2String(t))
 		printf("err %s", equals)
 		unmarshalStruct(t, lhs, context)
 	default:

@@ -64,10 +64,6 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		case prop.Eq("Raw"):
 			e.Raw, err = de.Marshal()
 		case prop.Eq("Department"):
-			e.Department = struct {
-				Name    string `json:"name"`
-				Manager string
-			}{}
 			err = json.UnmarshalObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
 				switch {
 				case prop.Eq("name"):
