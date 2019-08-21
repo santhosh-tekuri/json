@@ -21,36 +21,53 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"sync"
 	"unicode/utf8"
 )
 
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 func Marshal(v interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := NewEncoder(buf).Encode(v)
-	if err != nil {
-		return nil, err
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	w := NewWriter(buf)
+	w.Value(v)
+	if w.Err != nil {
+		buf.Reset()
+		bufferPool.Put(buf)
+		return nil, w.Err
 	}
-	return buf.Bytes(), nil
+	b := append([]byte(nil), buf.Bytes()...)
+	buf.Reset()
+	bufferPool.Put(buf)
+	return b, nil
 }
 
 type Encoder struct {
-	scratch  [64]byte
-	w        io.Writer
-	writeStr func(string) (int, error)
-	err      error
+	w *Writer
 }
 
 func NewEncoder(w io.Writer) *Encoder {
-	e := &Encoder{w: w}
-	if sw, ok := w.(io.StringWriter); ok {
-		e.writeStr = sw.WriteString
-	} else {
-		e.writeStr = func(s string) (int, error) {
-			return w.Write([]byte(s))
-		}
-	}
-	return e
+	return &Encoder{NewWriter(w)}
 }
+
+func (e *Encoder) Encode(v interface{}) error {
+	if e.w.Err == nil {
+		e.w.Value(v)
+	}
+	return e.w.Err
+}
+
+func (e *Encoder) NewLine() error {
+	e.w.write(newLine)
+	return e.w.Err
+}
+
+// writer ---
 
 var (
 	null      = []byte(`null`)
@@ -63,117 +80,128 @@ var (
 	arrClose  = []byte(`]`)
 	objOpen   = []byte(`{`)
 	objClose  = []byte(`}`)
+	quote     = []byte(`"`)
+	u00       = []byte(`\u00`)
+	u202      = []byte(`\u202`)
+	ufffd     = []byte(`\ufffd`)
+	escSlash  = []byte(`\\`)
+	escQuote  = []byte(`\"`)
+	escLF     = []byte(`\n`)
+	escCR     = []byte(`\r`)
+	escFF     = []byte(`\f`)
+	escTAB    = []byte(`\t`)
 )
 
-func (e *Encoder) Encode(v interface{}) (err error) {
+type Writer struct {
+	scratch  [64]byte
+	w        io.Writer
+	writeStr func(string) (int, error)
+	Err      error
+}
+
+func NewWriter(w io.Writer) *Writer {
+	jw := &Writer{w: w}
+	if sw, ok := w.(io.StringWriter); ok {
+		jw.writeStr = sw.WriteString
+	} else {
+		jw.writeStr = func(s string) (int, error) {
+			return w.Write([]byte(s))
+		}
+	}
+	return jw
+}
+
+func (w *Writer) Value(v interface{}) {
+	if w.Err != nil {
+		return
+	}
 	switch v := v.(type) {
+	case ValueEncoder:
+		v.EncodeJSON(w)
 	case Marshaler:
 		b, err := v.MarshalJSON()
-		if err != nil {
-			return err
+		if err == nil {
+			w.write(b)
 		}
-		e.write(b)
+		w.Err = err
 	case nil:
-		e.write(null)
+		w.Null()
 	case bool:
-		if v {
-			e.write(boolTrue)
-		} else {
-			e.write(boolFalse)
-		}
+		w.Bool(v)
 	case int:
-		b := strconv.AppendInt(e.scratch[:0], int64(v), 10)
-		e.write(b)
+		w.Int(int64(v))
 	case int8:
-		b := strconv.AppendInt(e.scratch[:0], int64(v), 10)
-		e.write(b)
+		w.Int(int64(v))
 	case int16:
-		b := strconv.AppendInt(e.scratch[:0], int64(v), 10)
-		e.write(b)
+		w.Int(int64(v))
 	case int32:
-		b := strconv.AppendInt(e.scratch[:0], int64(v), 10)
-		e.write(b)
+		w.Int(int64(v))
 	case int64:
-		b := strconv.AppendInt(e.scratch[:0], v, 10)
-		e.write(b)
+		w.Int(v)
 	case uint:
-		b := strconv.AppendUint(e.scratch[:0], uint64(v), 10)
-		e.write(b)
+		w.Uint(uint64(v))
 	case uint8:
-		b := strconv.AppendUint(e.scratch[:0], uint64(v), 10)
-		e.write(b)
+		w.Uint(uint64(v))
 	case uint16:
-		b := strconv.AppendUint(e.scratch[:0], uint64(v), 10)
-		e.write(b)
+		w.Uint(uint64(v))
 	case uint32:
-		b := strconv.AppendUint(e.scratch[:0], uint64(v), 10)
-		e.write(b)
+		w.Uint(uint64(v))
 	case uint64:
-		b := strconv.AppendUint(e.scratch[:0], v, 10)
-		e.write(b)
+		w.Uint(v)
 	case float32:
-		err = e.encodeFloat(float64(v), 32)
+		w.Float32(v)
 	case float64:
-		err = e.encodeFloat(v, 64)
+		w.Float64(v)
 	case string:
-		e.encodeString(v)
+		w.String(v)
 	case []interface{}:
-		if v == nil {
-			e.write(null)
-			break
-		}
-		e.write(arrOpen)
-		for i, elem := range v {
-			if i > 0 {
-				e.write(comma)
-			}
-			if err = e.Encode(elem); err != nil {
-				return err
-			}
-		}
-		e.write(arrClose)
+		w.Array(v)
 	case map[string]interface{}:
-		if v == nil {
-			e.write(null)
-			break
-		}
-		e.write(objOpen)
-		i := 0
-		for key, val := range v {
-			if i > 0 {
-				e.write(comma)
-			}
-			e.encodeString(key)
-			e.write(colon)
-			if err = e.Encode(val); err != nil {
-				return err
-			}
-			i++
-		}
-		e.write(objClose)
+		w.Object(v)
 	case []byte:
-		e.write(quote)
-		_, err = base64.NewEncoder(base64.StdEncoding, e.w).Write(v)
-		e.write(quote)
+		w.Bytes(v)
 	default:
-		return UnsupportedTypeError(reflect.TypeOf(v).String())
+		w.Err = UnsupportedTypeError(reflect.TypeOf(v).String())
 	}
-	if err != nil {
-		return err
-	}
-	return e.err
 }
 
-func (e *Encoder) NewLine() error {
-	e.write(newLine)
-	return e.err
+func (w *Writer) Null() {
+	w.write(null)
 }
 
-// ---
+func (w *Writer) Bool(v bool) {
+	if v {
+		w.write(boolTrue)
+	} else {
+		w.write(boolFalse)
+	}
+}
 
-func (e *Encoder) encodeFloat(f float64, bits int) error {
+func (w *Writer) Int(v int64) {
+	b := strconv.AppendInt(w.scratch[:0], v, 10)
+	w.write(b)
+}
+
+func (w *Writer) Uint(v uint64) {
+	b := strconv.AppendUint(w.scratch[:0], v, 10)
+	w.write(b)
+}
+
+func (w *Writer) Float32(f float32) {
+	w.float(float64(f), 32)
+}
+
+func (w *Writer) Float64(f float64) {
+	w.float(f, 64)
+}
+
+func (w *Writer) float(f float64, bits int) {
+	if w.Err != nil {
+		return
+	}
 	if math.IsInf(f, 0) || math.IsNaN(f) {
-		return UnsupportedValueError(strconv.FormatFloat(f, 'g', -1, bits))
+		w.Err = UnsupportedValueError(strconv.FormatFloat(f, 'g', -1, bits))
+		return
 	}
 
 	abs := math.Abs(f)
@@ -185,7 +213,7 @@ func (e *Encoder) encodeFloat(f float64, bits int) error {
 		}
 	}
 
-	b := e.scratch[:0]
+	b := w.scratch[:0]
 	b = strconv.AppendFloat(b, f, fmt, -1, bits)
 	if fmt == 'e' {
 		// clean up e-09 to e-9
@@ -195,47 +223,34 @@ func (e *Encoder) encodeFloat(f float64, bits int) error {
 			b = b[:n-1]
 		}
 	}
-	e.write(b)
-	return nil
+	w.write(b)
 }
 
-// ---
-
-var (
-	quote    = []byte(`"`)
-	u00      = []byte(`\u00`)
-	u202     = []byte(`\u202`)
-	ufffd    = []byte(`\ufffd`)
-	escSlash = []byte(`\\`)
-	escQuote = []byte(`\"`)
-	escLF    = []byte(`\n`)
-	escCR    = []byte(`\r`)
-	escFF    = []byte(`\f`)
-	escTAB   = []byte(`\t`)
-)
-
-func (e *Encoder) encodeString(s string) {
-	e.write(quote)
+func (w *Writer) String(s string) {
+	if w.Err != nil {
+		return
+	}
+	w.write(quote)
 	start := 0
 	for i := 0; i < len(s); {
 		b := s[i]
 		if b < 0x20 {
 			if start < i {
-				e.writeString(s[start:i])
+				w.writeString(s[start:i])
 			}
 			switch b {
 			case '\n':
-				e.write(escLF)
+				w.write(escLF)
 			case '\r':
-				e.write(escCR)
+				w.write(escCR)
 			case '\f':
-				e.write(escFF)
+				w.write(escFF)
 			case '\t':
-				e.write(escTAB)
+				w.write(escTAB)
 			default:
-				e.write(u00)
-				e.write(hex(b >> 4))
-				e.write(hex(b & 0xF))
+				w.write(u00)
+				w.write(hex(b >> 4))
+				w.write(hex(b & 0xF))
 			}
 			i++
 			start = i
@@ -244,13 +259,13 @@ func (e *Encoder) encodeString(s string) {
 		if b < utf8.RuneSelf {
 			if b == '\\' || b == '"' {
 				if start < i {
-					e.writeString(s[start:i])
+					w.writeString(s[start:i])
 				}
 				switch b {
 				case '\\':
-					e.write(escSlash)
+					w.write(escSlash)
 				case '"':
-					e.write(escQuote)
+					w.write(escQuote)
 				}
 				i++
 				start = i
@@ -262,19 +277,19 @@ func (e *Encoder) encodeString(s string) {
 		r, size := utf8.DecodeRuneInString(s[i:])
 		if r == utf8.RuneError && size == 1 {
 			if start < i {
-				e.writeString(s[start:i])
+				w.writeString(s[start:i])
 			}
-			e.write(ufffd)
+			w.write(ufffd)
 			i += size
 			start = i
 			continue
 		}
 		if r == '\u2028' || r == '\u2029' {
 			if start < i {
-				e.writeString(s[start:i])
+				w.writeString(s[start:i])
 			}
-			e.write(u202)
-			e.write(hex(uint8(r & 0xF)))
+			w.write(u202)
+			w.write(hex(uint8(r & 0xF)))
 			i += size
 			start = i
 			continue
@@ -282,9 +297,82 @@ func (e *Encoder) encodeString(s string) {
 		i += size
 	}
 	if start < len(s) {
-		e.writeString(s[start:])
+		w.writeString(s[start:])
 	}
-	e.write(quote)
+	w.write(quote)
+}
+
+func (w *Writer) Bytes(v []byte) {
+	if w.Err == nil {
+		w.write(quote)
+		_, w.Err = base64.NewEncoder(base64.StdEncoding, w.w).Write(v)
+		w.write(quote)
+	}
+}
+
+func (w *Writer) Object(v map[string]interface{}) {
+	if v == nil {
+		w.write(null)
+		return
+	}
+	w.write(objOpen)
+	i := 0
+	for key, val := range v {
+		if i > 0 {
+			w.write(comma)
+		}
+		w.String(key)
+		w.write(colon)
+		w.Value(val)
+		if w.Err != nil {
+			return
+		}
+		i++
+	}
+	w.write(objClose)
+}
+
+func (w *Writer) Array(v []interface{}) {
+	if v == nil {
+		w.write(null)
+		return
+	}
+	w.write(arrOpen)
+	for i, elem := range v {
+		if i > 0 {
+			w.write(comma)
+		}
+		w.Value(elem)
+		if w.Err != nil {
+			return
+		}
+	}
+	w.write(arrClose)
+}
+
+func (w *Writer) Comma() {
+	w.write(comma)
+}
+
+func (w *Writer) StartObject() {
+	w.write(objOpen)
+}
+
+func (w *Writer) Prop(s string) {
+	w.String(s)
+	w.write(colon)
+}
+
+func (w *Writer) EndObject() {
+	w.write(objClose)
+}
+
+func (w *Writer) StartArray() {
+	w.write(arrOpen)
+}
+
+func (w *Writer) EndArray() {
+	w.write(arrClose)
 }
 
 var hexBytes = []byte("0123456789abcdef")
@@ -293,16 +381,24 @@ func hex(i uint8) []byte {
 	return hexBytes[i : i+1]
 }
 
-func (e *Encoder) write(b []byte) {
-	if e.err == nil {
-		_, e.err = e.w.Write(b)
+func (w *Writer) Raw(s string) {
+	w.writeString(s)
+}
+
+func (w *Writer) write(b []byte) {
+	if w.Err == nil {
+		_, w.Err = w.w.Write(b)
 	}
 }
 
-func (e *Encoder) writeString(s string) {
-	if e.err == nil {
-		_, e.err = e.writeStr(s)
+func (w *Writer) writeString(s string) {
+	if w.Err == nil {
+		_, w.Err = w.writeStr(s)
 	}
+}
+
+type ValueEncoder interface {
+	EncodeJSON(*Writer)
 }
 
 // Marshaler is the interface implemented by types that

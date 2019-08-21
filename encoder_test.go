@@ -17,6 +17,8 @@ package json_test
 import (
 	"bytes"
 	gojson "encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -71,23 +73,72 @@ func TestMarshal(t *testing.T) {
 		})
 	}
 
-	t.Run("map", func(t *testing.T) {
-		want := map[string]interface{}{
-			"key1": "value1",
-			"key2": "value2",
-		}
-		b, err := json.Marshal(want)
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range ff {
+		t.Run(filepath.Base(f), func(t *testing.T) {
+			doc, err := ioutil.ReadFile(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want interface{}
+			if err := gojson.Unmarshal(doc, &want); err != nil {
+				t.Fatal(err)
+			}
+			b, err := json.Marshal(want)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := json.NewByteDecoder(b).Unmarshal()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Log(" got", got)
+				t.Log("want", want)
+				t.Fatal("got!=want")
+			}
+		})
+	}
+}
+
+func BenchmarkMarshal(b *testing.B) {
+	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
+	if err != nil {
+		b.Fatal(err)
+	}
+	for _, f := range ff {
+		doc, err := ioutil.ReadFile(f)
 		if err != nil {
-			t.Fatal(err)
+			b.Fatal(err)
 		}
-		got, err := json.NewByteDecoder(b).Unmarshal()
-		if err != nil {
-			t.Fatal(err)
+		var v interface{}
+		if err := gojson.Unmarshal(doc, &v); err != nil {
+			b.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Log(" got", got)
-			t.Log("want", want)
-			t.Fatal("got!=want")
-		}
-	})
+		b.Run(filepath.Base(f), func(b *testing.B) {
+			b.Run("mine", func(b *testing.B) {
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					_, err := json.Marshal(v)
+					if err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+			b.Run("std", func(b *testing.B) {
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					_, err = gojson.Marshal(v)
+					if err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
+		})
+	}
 }
