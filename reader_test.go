@@ -125,7 +125,7 @@ func TestReader_Unmarshal(t *testing.T) {
 				t.Fatal(err)
 			}
 			de := json.NewReadDecoder(singleByteReader{r})
-			got, err := de.Unmarshal(false)
+			got, err := de.Unmarshal()
 			if err != nil {
 				t.Fatal(err)
 			}

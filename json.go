@@ -43,6 +43,7 @@ type ByteDecoder struct {
 	//    if colon read ':'
 	// }
 	sep byte
+
 	useNumber bool
 }
 
