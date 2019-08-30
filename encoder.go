@@ -397,6 +397,19 @@ func (w *Writer) writeString(s string) {
 	}
 }
 
+// RawMessage is a raw encoded JSON value.
+// It implements Marshaler and Unmarshaler and can
+// be used to delay JSON decoding or precompute a JSON encoding.
+type RawMessage []byte
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (m RawMessage) MarshalJSON() ([]byte, error) {
+	if m == nil {
+		return null, nil
+	}
+	return m, nil
+}
+
 type ValueEncoder interface {
 	EncodeJSON(*Writer)
 }
