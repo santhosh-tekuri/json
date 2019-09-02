@@ -175,9 +175,9 @@ func (x Token) Eq(t string) bool {
 // from encoding/json/decode.go ---
 
 func unquoteBytes(s []byte) (t []byte, ok bool) {
-	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
-		return
-	}
+	//if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
+	//	return
+	//}
 	s = s[1 : len(s)-1]
 
 	// Check for unusual characters. If there are none,
