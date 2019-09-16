@@ -47,10 +47,12 @@ func TestDecoder(t *testing.T) {
 		{"object_invalid_comma1", `{,}`},
 		{"object_invalid_comma2", `{"key":"value",}`},
 		{"object_invalid_comma3", `{"key":"value",,}`},
-		{"object_invalid_comma4", `{,"key":"value"}`},
+		{"object_invalid_comma4", `{"key":"value",,"key2":"value2"}`},
+		{"object_invalid_comma5", `{,"key":"value"}`},
 		{"array_invalid_comma1", `[,]`},
 		{"array_invalid_comma2", `[1,]`},
 		{"array_invalid_comma3", `[1,,]`},
+		{"key_nonstring", `{true:true}`},
 		{"null", `null`},
 		{"string_empty", `""`},
 		{"string", `"this is message"`},
@@ -143,7 +145,7 @@ func TestDecoder(t *testing.T) {
 			for {
 				tok := de.Token()
 				// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
-				if tok.EOD() {
+				if tok.Comma() || tok.EOD() {
 					tok = de.Token()
 					// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
 				}

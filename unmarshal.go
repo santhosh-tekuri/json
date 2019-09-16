@@ -41,33 +41,38 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 		m := make(map[string]interface{})
 		for {
 			t = d.Token()
-			if t.Error() {
+			if t.Comma() {
+				key, err := d.Token().String("")
+				if err != nil {
+					return nil, err
+				}
+				v, err := d.Unmarshal()
+				if err != nil {
+					return nil, err
+				}
+				m[key] = v
+			} else if t.Error() {
 				return nil, t.Err
-			}
-			if t.Kind == ObjEnd {
+			} else {
 				return m, nil
 			}
-			key, _ := t.String("")
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			m[key] = v
 		}
 	case ArrBegin:
 		a := make([]interface{}, 0)
 		for {
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			if v == ArrEnd {
+			t = d.Token()
+			if t.Comma() {
+				v, err := d.Unmarshal()
+				if err != nil {
+					return nil, err
+				}
+				a = append(a, v)
+			} else if t.Error() {
+				return nil, t.Err
+			} else {
 				return a, nil
 			}
-			a = append(a, v)
 		}
-	case ArrEnd:
-		return ArrEnd, nil
 	default:
 		panic(fmt.Sprintln("BUG: got", t))
 	}
@@ -86,19 +91,16 @@ func UnmarshalObj(context string, d Decoder, f PropUnmarshaler) error {
 	var err error
 	for {
 		t := d.Token()
-		switch {
-		case t.Error():
-			return t.Err
-		case t.End():
-			return nil
-		default:
-			if d.Peek().Null() {
-				d.Token()
-				continue
+		if t.Comma() {
+			prop := d.Token()
+			if prop.Error() {
+				return prop.Err
 			}
-			if err = f(d, t); err != nil {
+			if err = f(d, prop); err != nil {
 				return err
 			}
+		} else {
+			return t.Err
 		}
 	}
 }
@@ -113,12 +115,16 @@ func UnmarshalArr(context string, d Decoder, f ItemUnmarshaler) error {
 	if err := t.Arr(context); err != nil {
 		return err
 	}
-	for !d.Peek().End() {
-		if err := f(d); err != nil {
-			return err
+	for {
+		t := d.Token()
+		if t.Comma() {
+			if err := f(d); err != nil {
+				return err
+			}
+		} else {
+			return t.Err
 		}
 	}
-	return d.Token().Err
 }
 
 // --

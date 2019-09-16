@@ -34,19 +34,7 @@ func (d *ReadDecoder) Reset(r io.Reader) {
 	d.d.Reset(d.d.buf[:0])
 }
 
-func (d *ReadDecoder) Peek() Token {
-	if d.d.peek.Kind == none {
-		d.d.peek = d.Token()
-	}
-	return d.d.peek
-}
-
 func (d *ReadDecoder) Token() Token {
-	if d.d.peek.Kind != none {
-		t := d.d.peek
-		d.d.peek = Token{}
-		return t
-	}
 	var err error
 	pos, sep, empty := d.d.pos, d.d.sep, d.d.empty
 	for {
@@ -97,24 +85,11 @@ func (d *ReadDecoder) Token() Token {
 }
 
 func (d *ReadDecoder) Marshal() ([]byte, error) {
-	t := d.Token()
-	switch t.Kind {
-	case Error:
-		return nil, t.Err
-	case Null:
-		return []byte("null"), nil
-	case Str, Num, Bool:
-		buf := make([]byte, len(t.Data))
-		copy(buf, t.Data)
-		return buf, nil
-	default:
-		d.d.peek = t
-		buf := new(bytes.Buffer)
-		if err := d.marshal(buf); err != nil {
-			return nil, err
-		}
-		return buf.Bytes(), nil
+	buf := new(bytes.Buffer)
+	if err := d.marshal(buf); err != nil {
+		return nil, err
 	}
+	return buf.Bytes(), nil
 }
 
 func (d *ReadDecoder) marshal(buf *bytes.Buffer) error {
@@ -131,42 +106,45 @@ func (d *ReadDecoder) marshal(buf *bytes.Buffer) error {
 		comma := false
 		for {
 			t = d.Token()
-			switch t.Kind {
-			case Error:
+			if t.Comma() {
+				if comma {
+					buf.WriteByte(',')
+				}
+				comma = true
+				key := d.Token()
+				if key.Error() {
+					return key.Err
+				}
+				buf.Write(key.Data)
+				buf.WriteByte(':')
+				if err := d.marshal(buf); err != nil {
+					return err
+				}
+			} else if t.Error() {
 				return t.Err
-			case ObjEnd:
+			} else {
 				buf.WriteByte('}')
-				return nil
-			}
-			if comma {
-				buf.WriteByte(',')
-			}
-			comma = true
-			buf.Write(t.Data) // key
-			buf.WriteByte(':')
-			if err := d.marshal(buf); err != nil {
-				return err
+				break
 			}
 		}
 	case ArrBegin:
 		buf.WriteByte('[')
 		comma := false
 		for {
-			switch d.Peek().Kind {
-			case Error:
-				d.Token()
+			t = d.Token()
+			if t.Comma() {
+				if comma {
+					buf.WriteByte(',')
+				}
+				comma = true
+				if err := d.marshal(buf); err != nil {
+					return err
+				}
+			} else if t.Error() {
 				return t.Err
-			case ArrEnd:
-				d.Token()
+			} else {
 				buf.WriteByte(']')
-				return nil
-			}
-			if comma {
-				buf.WriteByte(',')
-			}
-			comma = true
-			if err := d.marshal(buf); err != nil {
-				return err
+				break
 			}
 		}
 	}
@@ -198,33 +176,38 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 		m := make(map[string]interface{})
 		for {
 			t = d.Token()
-			if t.Error() {
+			if t.Comma() {
+				key, err := d.Token().String("")
+				if err != nil {
+					return nil, err
+				}
+				v, err := d.Unmarshal()
+				if err != nil {
+					return nil, err
+				}
+				m[key] = v
+			} else if t.Error() {
 				return nil, t.Err
-			}
-			if t.Kind == ObjEnd {
+			} else {
 				return m, nil
 			}
-			key, _ := t.String("")
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			m[key] = v
 		}
 	case ArrBegin:
 		a := make([]interface{}, 0)
 		for {
-			v, err := d.Unmarshal()
-			if err != nil {
-				return nil, err
-			}
-			if v == ArrEnd {
+			t = d.Token()
+			if t.Comma() {
+				v, err := d.Unmarshal()
+				if err != nil {
+					return nil, err
+				}
+				a = append(a, v)
+			} else if t.Error() {
+				return nil, t.Err
+			} else {
 				return a, nil
 			}
-			a = append(a, v)
 		}
-	case ArrEnd:
-		return ArrEnd, nil
 	default:
 		panic(fmt.Sprintln("BUG: got", t))
 	}

@@ -8,15 +8,25 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 	return json.UnmarshalObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Name"):
-			e.Name, err = de.Token().String("employee.Name")
+			if val := de.Token(); !val.Null() {
+				e.Name, err = val.String("employee.Name")
+			}
 		case prop.Eq("sirName"):
-			e.Sirname, err = de.Token().String("employee.Sirname")
+			if val := de.Token(); !val.Null() {
+				e.Sirname, err = val.String("employee.Sirname")
+			}
 		case prop.Eq("Permanent"):
-			e.Permanent, err = de.Token().Bool("employee.Permanent")
+			if val := de.Token(); !val.Null() {
+				e.Permanent, err = val.Bool("employee.Permanent")
+			}
 		case prop.Eq("Height"):
-			e.Height, err = de.Token().Float64("employee.Height")
+			if val := de.Token(); !val.Null() {
+				e.Height, err = val.Float64("employee.Height")
+			}
 		case prop.Eq("Weight"):
-			e.Weight, err = de.Token().Int("employee.Weight")
+			if val := de.Token(); !val.Null() {
+				e.Weight, err = val.Int("employee.Weight")
+			}
 		case prop.Eq("NickNames"):
 			err = json.UnmarshalArr("employee.NickNames", de, func(de json.Decoder) error {
 				item, err := de.Token().String("employee.NickNames[]")
@@ -67,9 +77,13 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			err = json.UnmarshalObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
 				switch {
 				case prop.Eq("name"):
-					e.Department.Name, err = de.Token().String("employee.Department.Name")
+					if val := de.Token(); !val.Null() {
+						e.Department.Name, err = val.String("employee.Department.Name")
+					}
 				case prop.Eq("Manager"):
-					e.Department.Manager, err = de.Token().String("employee.Department.Manager")
+					if val := de.Token(); !val.Null() {
+						e.Department.Manager, err = val.String("employee.Department.Manager")
+					}
 				default:
 					err = de.Skip()
 				}
@@ -86,7 +100,9 @@ func (a *address) Unmarshal(de json.Decoder) error {
 	return json.UnmarshalObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Street"):
-			a.Street, err = de.Token().String("address.Street")
+			if val := de.Token(); !val.Null() {
+				a.Street, err = val.String("address.Street")
+			}
 		default:
 			err = de.Skip()
 		}

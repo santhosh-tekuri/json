@@ -140,7 +140,7 @@ func unmarshalStruct(s *ast.StructType, lhs, context string) {
 		printf(`case prop.Eq("%s"):`, prop)
 		lhs := lhs + "." + fname
 		context := context + "." + fname
-		unmarshal(lhs, "=", context, field.Type)
+		unmarshal(true, lhs, "=", context, field.Type)
 	}
 	println(`
 		default:
@@ -150,13 +150,21 @@ func unmarshalStruct(s *ast.StructType, lhs, context string) {
 	});`)
 }
 
-func unmarshal(lhs, equals, context string, t ast.Expr) {
+func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 	switch t := t.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "string", "float64", "bool", "int", "int64":
+			val := "de.Token()"
+			if checkNull {
+				val = "val"
+				printf(`if val:=de.Token(); !val.Null() {`)
+			}
 			method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
-			printf(`%s, err %s de.Token().%s("%s");`, lhs, equals, method, context)
+			printf(`%s, err %s %s.%s("%s");`, lhs, equals, val, method, context)
+			if checkNull {
+				printf("};")
+			}
 		default:
 			if equals == ":=" {
 				printf(`%s := %s{};`, lhs, t.Name)
@@ -172,7 +180,7 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 		}
 		printf(`err %s json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, equals, context)
 		item := newVar("item")
-		unmarshal(item, ":=", context+"[]", t.Elt)
+		unmarshal(false, item, ":=", context+"[]", t.Elt)
 		printf(`%s = append(%s, %s);`, lhs, lhs, item)
 		printf("return err;")
 		printf("});")
@@ -188,7 +196,7 @@ func unmarshal(lhs, equals, context string, t ast.Expr) {
 		printf(`err %s json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
 		printf(`k, _ := prop.String("");`)
 		v := newVar("v")
-		unmarshal(v, ":=", context+"{}", t.Value)
+		unmarshal(false, v, ":=", context+"{}", t.Value)
 		printf(`%s[k] = %s;`, lhs, v)
 		printf("return err;")
 		printf("});")

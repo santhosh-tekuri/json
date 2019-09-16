@@ -30,8 +30,11 @@ const (
 	Bool
 	Null
 	Error
-	ObjBegin, ObjEnd Kind = '{', '}'
-	ArrBegin, ArrEnd Kind = '[', ']'
+	ObjEnd   Kind = '}'
+	ObjBegin Kind = '{'
+	ArrEnd   Kind = ']'
+	ArrBegin Kind = '['
+	Comma    Kind = ','
 )
 
 var kindNames = []string{
@@ -63,6 +66,10 @@ func (t Token) Error() bool {
 // UnexpectedEOF tells whether token is an unexpectedEOF error.
 func (t Token) UnexpectedEOF() bool {
 	return t.Kind == Error && IsUnexpectedEOF(t.Err)
+}
+
+func (t Token) Comma() bool {
+	return t.Kind == Comma
 }
 
 func (t Token) EOD() bool {
