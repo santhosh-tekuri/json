@@ -66,51 +66,51 @@ func (d *ByteDecoder) string() Token {
 	}
 }
 
-func (x Token) Eq(t string) bool {
-	s := x.Data
+func (t Token) Eq(v string) bool {
+	s := t.Data
 	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
 		return false
 	}
 	s = s[1 : len(s)-1]
 	i, j := 0, 0
-	for i < len(s) && j < len(t) {
+	for i < len(s) && j < len(v) {
 		c := s[i]
 		if c == '\\' {
 			i++
 			c = s[i]
 			switch c {
 			case '"', '\\', '/', '\'':
-				if t[j] != c {
+				if v[j] != c {
 					return false
 				}
 				i++
 				j++
 			case 'b':
-				if t[j] != '\b' {
+				if v[j] != '\b' {
 					return false
 				}
 				i++
 				j++
 			case 'f':
-				if t[j] != '\f' {
+				if v[j] != '\f' {
 					return false
 				}
 				i++
 				j++
 			case 'n':
-				if t[j] != '\n' {
+				if v[j] != '\n' {
 					return false
 				}
 				i++
 				j++
 			case 'r':
-				if t[j] != '\r' {
+				if v[j] != '\r' {
 					return false
 				}
 				i++
 				j++
 			case 't':
-				if t[j] != '\t' {
+				if v[j] != '\t' {
 					return false
 				}
 				i++
@@ -125,11 +125,11 @@ func (x Token) Eq(t string) bool {
 						i += 6
 						b := make([]byte, utf8.UTFMax)
 						n := utf8.EncodeRune(b, dec)
-						if j+n > len(t) {
+						if j+n > len(v) {
 							return false
 						}
 						for x := 0; x < n; x++ {
-							if b[x] != t[j] {
+							if b[x] != v[j] {
 								return false
 							}
 							j++
@@ -141,11 +141,11 @@ func (x Token) Eq(t string) bool {
 				}
 				b := make([]byte, utf8.UTFMax)
 				n := utf8.EncodeRune(b, r)
-				if j+n > len(t) {
+				if j+n > len(v) {
 					return false
 				}
 				for x := 0; x < n; x++ {
-					if b[x] != t[j] {
+					if b[x] != v[j] {
 						return false
 					}
 					j++
@@ -154,22 +154,22 @@ func (x Token) Eq(t string) bool {
 			continue
 		}
 		if c < utf8.RuneSelf {
-			if t[j] != c {
+			if v[j] != c {
 				return false
 			}
 			i++
 			j++
 			continue
 		}
-		v1, size1 := utf8.DecodeRune(s[i:])
-		v2, size2 := utf8.DecodeRuneInString(t[j:])
-		if v1 != v2 || size1 != size2 {
+		r1, size1 := utf8.DecodeRune(s[i:])
+		r2, size2 := utf8.DecodeRuneInString(v[j:])
+		if r1 != r2 || size1 != size2 {
 			return false
 		}
 		i += size1
 		j += size2
 	}
-	return i == len(s) && j == len(t)
+	return i == len(s) && j == len(v)
 }
 
 // from encoding/json/decode.go ---
