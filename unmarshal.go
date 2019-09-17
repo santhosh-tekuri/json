@@ -41,38 +41,36 @@ func (d *ByteDecoder) Decode() (v interface{}, err error) {
 		m := make(map[string]interface{})
 		for {
 			t = d.Token()
-			if t.Comma() {
-				key, err := d.Token().String("")
-				if err != nil {
-					return nil, err
-				}
-				v, err := d.Decode()
-				if err != nil {
-					return nil, err
-				}
-				m[key] = v
-			} else if t.Error() {
+			if t.Error() {
 				return nil, t.Err
-			} else {
+			}
+			if t.Kind == ObjEnd {
 				return m, nil
 			}
+			key, err := t.String("")
+			if err != nil {
+				return nil, err
+			}
+			v, err := d.Decode()
+			if err != nil {
+				return nil, err
+			}
+			m[key] = v
 		}
 	case ArrBegin:
 		a := make([]interface{}, 0)
 		for {
-			t = d.Token()
-			if t.Comma() {
-				v, err := d.Decode()
-				if err != nil {
-					return nil, err
-				}
-				a = append(a, v)
-			} else if t.Error() {
-				return nil, t.Err
-			} else {
+			v, err := d.Decode()
+			if err != nil {
+				return nil, err
+			}
+			if v == ArrEnd {
 				return a, nil
 			}
+			a = append(a, v)
 		}
+	case ArrEnd:
+		return ArrEnd, nil
 	default:
 		panic(fmt.Sprintln("BUG: got", t))
 	}
@@ -91,16 +89,15 @@ func DecodeObj(context string, d Decoder, f DecodeProp) error {
 	var err error
 	for {
 		t := d.Token()
-		if t.Comma() {
-			prop := d.Token()
-			if prop.Error() {
-				return prop.Err
-			}
-			if err = f(d, prop); err != nil {
+		switch {
+		case t.Error():
+			return t.Err
+		case t.End():
+			return nil
+		default:
+			if err = f(d, t); err != nil {
 				return err
 			}
-		} else {
-			return t.Err
 		}
 	}
 }
@@ -115,16 +112,12 @@ func DecodeArr(context string, d Decoder, f DecodeItem) error {
 	if err := t.Arr(context); err != nil {
 		return err
 	}
-	for {
-		t := d.Token()
-		if t.Comma() {
-			if err := f(d); err != nil {
-				return err
-			}
-		} else {
-			return t.Err
+	for !d.Peek().End() {
+		if err := f(d); err != nil {
+			return err
 		}
 	}
+	return d.Token().Err
 }
 
 // --

@@ -21,6 +21,7 @@ import (
 
 type Decoder interface {
 	Token() Token
+	Peek() Token
 	Skip() error
 	Marshal() ([]byte, error)
 	// UseNumber causes the Decoder to unmarshal a number into an interface{} as a Number instead of as a float64.
@@ -34,6 +35,7 @@ type ByteDecoder struct {
 	stack []byte
 	mark  int
 	empty Kind // tells action to take when stack is empty
+	peek  Token
 
 	// sep contains either 0 or ',' or ':'; default is ','
 	// if !stack.empty {
@@ -53,7 +55,19 @@ func (d *ByteDecoder) Reset(b []byte) {
 	d.buf, d.pos, d.stack, d.empty, d.sep = b, 0, d.stack[:0], none, ','
 }
 
+func (d *ByteDecoder) Peek() Token {
+	if d.peek.Kind == none {
+		d.peek = d.Token()
+	}
+	return d.peek
+}
+
 func (d *ByteDecoder) Token() Token {
+	if d.peek.Kind != none {
+		t := d.peek
+		d.peek = Token{}
+		return t
+	}
 	d.mark = -1
 	// skip whitespace
 	for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
@@ -88,37 +102,34 @@ func (d *ByteDecoder) Token() Token {
 				d.pos++
 			}
 		} else {
-			if d.sep != ','+1 {
-				if b == s+2 {
+			comma := d.sep == ','
+			d.sep = ','
+			if b == s+2 {
+				d.pos++
+				d.stack = d.stack[:len(d.stack)-1]
+				return Token{Kind: Kind(s + 2)}
+			}
+			if comma {
+				if b != ',' {
+					if s == '{' {
+						return d.error("after object key:value pair")
+					}
+					return d.error("after array element")
+				}
+				d.pos++ // read comma
+				// skip whitespace
+				for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
 					d.pos++
-					d.sep = ','
-					d.stack = d.stack[:len(d.stack)-1]
-					return Token{Kind: Kind(s + 2)}
-				}
-				if d.sep == 0 {
-					d.sep = ',' + 1
-					return Token{Kind: Comma}
 				}
 			}
-			if d.sep == ',' {
-				if b == ',' {
-					d.pos++ // read comma
-					d.sep = ',' + 1
-					return Token{Kind: Comma}
-				}
-				if s == '{' {
-					return d.error("after object key:value pair")
-				}
-				return d.error("after array element")
-			}
-			// now d.sep is ','+1
 			if s == '{' {
-				if b != '"' {
+				if d.pos == len(d.buf) {
+					return d.unexpectedEOF()
+				}
+				if b := d.buf[d.pos]; b != '"' {
 					return d.error("looking for beginning of object key string")
 				}
 				d.sep = ':'
-			} else {
-				d.sep = ','
 			}
 		}
 	}
@@ -192,19 +203,20 @@ func (d *ByteDecoder) Skip() error {
 }
 
 func (d *ByteDecoder) MarshalInternal() ([]byte, error) {
-	skipColon := d.sep == ':'
+	if d.peek.Kind == none {
+		d.Peek()
+	}
 	pos := d.pos
+	switch d.peek.Kind {
+	case ObjBegin, ObjEnd, ArrBegin, ArrEnd:
+		pos--
+	case Null:
+		pos -= 4
+	default:
+		pos -= len(d.peek.Data)
+	}
 	if err := d.Skip(); err != nil {
 		return nil, err
-	}
-	if skipColon {
-		for d.buf[pos] != ':' {
-			pos++
-		}
-		pos++
-		for whitespace(d.buf[pos]) {
-			pos++
-		}
 	}
 	return d.buf[pos:d.pos], nil
 }

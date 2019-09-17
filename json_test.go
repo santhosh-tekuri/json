@@ -145,7 +145,7 @@ func TestByteDecoder(t *testing.T) {
 			for {
 				tok := de.Token()
 				// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
-				if tok.Comma() || tok.EOD() {
+				if tok.EOD() {
 					tok = de.Token()
 					// t.Logf("%s `%s` %v", tok.Kind, tok.Data, tok.Err)
 				}
