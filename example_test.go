@@ -40,7 +40,7 @@ type address struct {
 }
 
 func (a *address) Unmarshal(de json.Decoder) error {
-	return json.UnmarshalObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
+	return json.DecodeObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("street"):
 			a.street, err = de.Token().String("address.street")
@@ -56,7 +56,7 @@ func (a *address) Unmarshal(de json.Decoder) error {
 }
 
 func (d *details) Unmarshal(de json.Decoder) error {
-	return json.UnmarshalObj("details", de, func(de json.Decoder, prop json.Token) (err error) {
+	return json.DecodeObj("details", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("height"):
 			d.height, err = de.Token().Float64("details.height")
@@ -70,7 +70,7 @@ func (d *details) Unmarshal(de json.Decoder) error {
 }
 
 func (e *employee) Unmarshal(de json.Decoder) error {
-	return json.UnmarshalObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
+	return json.DecodeObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("name"):
 			e.name, err = de.Token().String("employee.name")
@@ -81,7 +81,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		case prop.Eq("details"):
 			return e.details.Unmarshal(de)
 		case prop.Eq("addresses"):
-			err = json.UnmarshalArr("employee.addresses", de, func(de json.Decoder) error {
+			err = json.DecodeArr("employee.addresses", de, func(de json.Decoder) error {
 				addr := address{}
 				if err := addr.Unmarshal(de); err != nil {
 					return err

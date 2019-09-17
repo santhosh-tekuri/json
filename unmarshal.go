@@ -78,9 +78,9 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 	}
 }
 
-type PropUnmarshaler func(de Decoder, prop Token) error
+type DecodeProp func(de Decoder, prop Token) error
 
-func UnmarshalObj(context string, d Decoder, f PropUnmarshaler) error {
+func DecodeObj(context string, d Decoder, f DecodeProp) error {
 	t := d.Token()
 	if t.Null() {
 		return nil
@@ -105,9 +105,9 @@ func UnmarshalObj(context string, d Decoder, f PropUnmarshaler) error {
 	}
 }
 
-type ItemUnmarshaler func(de Decoder) error
+type DecodeItem func(de Decoder) error
 
-func UnmarshalArr(context string, d Decoder, f ItemUnmarshaler) error {
+func DecodeArr(context string, d Decoder, f DecodeItem) error {
 	t := d.Token()
 	if t.Null() {
 		return nil

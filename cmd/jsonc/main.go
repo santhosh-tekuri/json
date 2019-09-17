@@ -112,7 +112,7 @@ func generate(s *ast.StructType, sname string) {
 }
 
 func unmarshalStruct(s *ast.StructType, lhs, context string) {
-	printf(`json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {
+	printf(`json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {
 			switch {
 	`, context)
 
@@ -178,7 +178,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			printf(`var %s []%s;`, lhs, expr2String(t.Elt))
 			equals = "="
 		}
-		printf(`err %s json.UnmarshalArr("%s", de, func(de json.Decoder) error {`, equals, context)
+		printf(`err %s json.DecodeArr("%s", de, func(de json.Decoder) error {`, equals, context)
 		item := newVar("item")
 		unmarshal(false, item, ":=", context+"[]", t.Elt)
 		printf(`%s = append(%s, %s);`, lhs, lhs, item)
@@ -193,7 +193,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			return
 		}
 		printf(`%s %s make(%s);`, lhs, equals, expr2String(t))
-		printf(`err %s json.UnmarshalObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
+		printf(`err %s json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
 		printf(`k, _ := prop.String("");`)
 		v := newVar("v")
 		unmarshal(false, v, ":=", context+"{}", t.Value)

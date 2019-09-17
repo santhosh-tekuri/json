@@ -5,7 +5,7 @@ package example
 import "github.com/santhosh-tekuri/json"
 
 func (e *employee) Unmarshal(de json.Decoder) error {
-	return json.UnmarshalObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
+	return json.DecodeObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Name"):
 			if val := de.Token(); !val.Null() {
@@ -28,7 +28,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				e.Weight, err = val.Int("employee.Weight")
 			}
 		case prop.Eq("NickNames"):
-			err = json.UnmarshalArr("employee.NickNames", de, func(de json.Decoder) error {
+			err = json.DecodeArr("employee.NickNames", de, func(de json.Decoder) error {
 				item, err := de.Token().String("employee.NickNames[]")
 				e.NickNames = append(e.NickNames, item)
 				return err
@@ -36,7 +36,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		case prop.Eq("Address"):
 			err = e.Address.Unmarshal(de)
 		case prop.Eq("Addresses"):
-			err = json.UnmarshalArr("employee.Addresses", de, func(de json.Decoder) error {
+			err = json.DecodeArr("employee.Addresses", de, func(de json.Decoder) error {
 				item := address{}
 				err := item.Unmarshal(de)
 				e.Addresses = append(e.Addresses, item)
@@ -45,14 +45,14 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		case prop.Eq("Notes1"):
 			e.Notes1, err = de.Unmarshal()
 		case prop.Eq("Notes2"):
-			err = json.UnmarshalArr("employee.Notes2", de, func(de json.Decoder) error {
+			err = json.DecodeArr("employee.Notes2", de, func(de json.Decoder) error {
 				item, err := de.Unmarshal()
 				e.Notes2 = append(e.Notes2, item)
 				return err
 			})
 		case prop.Eq("Notes3"):
 			e.Notes3 = make(map[string]interface{})
-			err = json.UnmarshalObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
+			err = json.DecodeObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
 				v, err := de.Unmarshal()
 				e.Notes3[k] = v
@@ -60,10 +60,10 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 			})
 		case prop.Eq("Contacts"):
 			e.Contacts = make(map[string][]string)
-			err = json.UnmarshalObj("employee.Contacts", de, func(de json.Decoder, prop json.Token) (err error) {
+			err = json.DecodeObj("employee.Contacts", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
 				var v []string
-				err = json.UnmarshalArr("employee.Contacts{}", de, func(de json.Decoder) error {
+				err = json.DecodeArr("employee.Contacts{}", de, func(de json.Decoder) error {
 					item, err := de.Token().String("employee.Contacts{}[]")
 					v = append(v, item)
 					return err
@@ -74,7 +74,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		case prop.Eq("Raw"):
 			e.Raw, err = de.Marshal()
 		case prop.Eq("Department"):
-			err = json.UnmarshalObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
+			err = json.DecodeObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
 				switch {
 				case prop.Eq("name"):
 					if val := de.Token(); !val.Null() {
@@ -97,7 +97,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 	})
 }
 func (a *address) Unmarshal(de json.Decoder) error {
-	return json.UnmarshalObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
+	return json.DecodeObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Street"):
 			if val := de.Token(); !val.Null() {
