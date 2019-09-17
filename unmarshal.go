@@ -21,7 +21,7 @@ func (d *ByteDecoder) UseNumber() {
 	d.useNumber = true
 }
 
-func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
+func (d *ByteDecoder) Decode() (v interface{}, err error) {
 	t := d.Token()
 	switch t.Kind {
 	case Error:
@@ -46,7 +46,7 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 				if err != nil {
 					return nil, err
 				}
-				v, err := d.Unmarshal()
+				v, err := d.Decode()
 				if err != nil {
 					return nil, err
 				}
@@ -62,7 +62,7 @@ func (d *ByteDecoder) Unmarshal() (v interface{}, err error) {
 		for {
 			t = d.Token()
 			if t.Comma() {
-				v, err := d.Unmarshal()
+				v, err := d.Decode()
 				if err != nil {
 					return nil, err
 				}

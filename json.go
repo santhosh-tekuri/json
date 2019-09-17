@@ -25,7 +25,7 @@ type Decoder interface {
 	Marshal() ([]byte, error)
 	// UseNumber causes the Decoder to unmarshal a number into an interface{} as a Number instead of as a float64.
 	UseNumber()
-	Unmarshal() (interface{}, error)
+	Decode() (interface{}, error)
 }
 
 type ByteDecoder struct {

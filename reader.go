@@ -156,7 +156,7 @@ func (d *ReadDecoder) UseNumber() {
 	d.d.useNumber = true
 }
 
-func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
+func (d *ReadDecoder) Decode() (v interface{}, err error) {
 	t := d.Token()
 	switch t.Kind {
 	case Error:
@@ -181,7 +181,7 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 				if err != nil {
 					return nil, err
 				}
-				v, err := d.Unmarshal()
+				v, err := d.Decode()
 				if err != nil {
 					return nil, err
 				}
@@ -197,7 +197,7 @@ func (d *ReadDecoder) Unmarshal() (v interface{}, err error) {
 		for {
 			t = d.Token()
 			if t.Comma() {
-				v, err := d.Unmarshal()
+				v, err := d.Decode()
 				if err != nil {
 					return nil, err
 				}

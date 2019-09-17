@@ -27,7 +27,7 @@ import (
 	"github.com/santhosh-tekuri/json"
 )
 
-func TestDecoder(t *testing.T) {
+func TestByteDecoder(t *testing.T) {
 	tests := []struct {
 		name string
 		doc  string
@@ -216,7 +216,7 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-func TestDecoder_Unmarshal(t *testing.T) {
+func TestByteDecoder_Decode(t *testing.T) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +228,7 @@ func TestDecoder_Unmarshal(t *testing.T) {
 				t.Fatal(err)
 			}
 			de := json.NewByteDecoder(doc)
-			got, err := de.Unmarshal()
+			got, err := de.Decode()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -277,7 +277,7 @@ func TestNoAllocs(t *testing.T) {
 	}
 }
 
-func BenchmarkDecoder(b *testing.B) {
+func BenchmarkByteDecoder(b *testing.B) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
 	if err != nil {
 		b.Fatal(err)
@@ -307,7 +307,7 @@ func BenchmarkDecoder(b *testing.B) {
 	}
 }
 
-func BenchmarkUnmarshal(b *testing.B) {
+func BenchmarkByteDecoder_Decode(b *testing.B) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
 	if err != nil {
 		b.Fatal(err)
@@ -324,7 +324,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					v, err = de.Unmarshal()
+					v, err = de.Decode()
 					if err != nil {
 						b.Fatal(err)
 					}

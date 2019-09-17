@@ -172,7 +172,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			printf(`err %s %s.Unmarshal(de);`, equals, lhs)
 		}
 	case *ast.InterfaceType:
-		printf(`%s, err %s de.Unmarshal();`, lhs, equals)
+		printf(`%s, err %s de.Decode();`, lhs, equals)
 	case *ast.ArrayType:
 		if equals == ":=" {
 			printf(`var %s []%s;`, lhs, expr2String(t.Elt))

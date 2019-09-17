@@ -91,7 +91,7 @@ func TestMarshal(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := json.NewByteDecoder(b).Unmarshal()
+			got, err := json.NewByteDecoder(b).Decode()
 			if err != nil {
 				t.Fatal(err)
 			}

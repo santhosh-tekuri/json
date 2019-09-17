@@ -21,7 +21,7 @@ func (r singleByteReader) Read(b []byte) (int, error) {
 	return r.r.Read(b[:1])
 }
 
-func TestReader_Decode(t *testing.T) {
+func TestReadDecoder(t *testing.T) {
 	tests := []struct {
 		name string
 		doc  string
@@ -110,7 +110,7 @@ func TestReader_Decode(t *testing.T) {
 	}
 }
 
-func TestReader_Unmarshal(t *testing.T) {
+func TestReadDecoder_Decode(t *testing.T) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestReader_Unmarshal(t *testing.T) {
 				t.Fatal(err)
 			}
 			de := json.NewReadDecoder(singleByteReader{r})
-			got, err := de.Unmarshal()
+			got, err := de.Decode()
 			if err != nil {
 				t.Fatal(err)
 			}
