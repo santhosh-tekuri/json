@@ -4,7 +4,7 @@ package example
 
 import "github.com/santhosh-tekuri/json"
 
-func (e *employee) Unmarshal(de json.Decoder) error {
+func (e *employee) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("employee", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Name"):
@@ -34,11 +34,11 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Address"):
-			err = e.Address.Unmarshal(de)
+			err = e.Address.DecodeJSON(de)
 		case prop.Eq("Addresses"):
 			err = json.DecodeArr("employee.Addresses", de, func(de json.Decoder) error {
 				item := address{}
-				err := item.Unmarshal(de)
+				err := item.DecodeJSON(de)
 				e.Addresses = append(e.Addresses, item)
 				return err
 			})
@@ -92,7 +92,7 @@ func (e *employee) Unmarshal(de json.Decoder) error {
 		return
 	})
 }
-func (a *address) Unmarshal(de json.Decoder) error {
+func (a *address) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Street"):

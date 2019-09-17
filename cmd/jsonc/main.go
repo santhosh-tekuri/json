@@ -105,7 +105,7 @@ func main() {
 
 func generate(s *ast.StructType, sname string) {
 	r := strings.ToLower(sname[:1])
-	printf("func (%s *%s) Unmarshal(de json.Decoder) error {\n", r, sname)
+	printf("func (%s *%s) DecodeJSON(de json.Decoder) error {\n", r, sname)
 	printf(`return `)
 	unmarshalStruct(s, r, sname)
 	println(`}`)
@@ -169,7 +169,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			if equals == ":=" {
 				printf(`%s := %s{};`, lhs, t.Name)
 			}
-			printf(`err %s %s.Unmarshal(de);`, equals, lhs)
+			printf(`err %s %s.DecodeJSON(de);`, equals, lhs)
 		}
 	case *ast.InterfaceType:
 		printf(`%s, err %s de.Decode();`, lhs, equals)

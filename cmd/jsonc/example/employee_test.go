@@ -9,7 +9,7 @@ import (
 	"github.com/santhosh-tekuri/json"
 )
 
-func TestUnmarshal(t *testing.T) {
+func TestDecodeJSON(t *testing.T) {
 	tests := []struct {
 		name string
 		doc  string
@@ -40,7 +40,7 @@ func TestUnmarshal(t *testing.T) {
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
 			got := tt.val
-			gerr := got.Unmarshal(de)
+			gerr := got.DecodeJSON(de)
 			if gerr != nil {
 				t.Log("gerr:", gerr)
 			}
