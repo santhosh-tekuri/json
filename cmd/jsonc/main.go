@@ -297,6 +297,8 @@ func expr2String(t ast.Expr) string {
 		}
 		buf.WriteString("}")
 		return buf.String()
+	case *ast.StarExpr:
+		return "*" + expr2String(t.X)
 	default:
 		panic(fmt.Sprintf("expr2String(%T)", t))
 	}
