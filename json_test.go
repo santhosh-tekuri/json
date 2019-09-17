@@ -15,6 +15,7 @@
 package json_test
 
 import (
+	"bytes"
 	gojson "encoding/json"
 	"io"
 	"io/ioutil"
@@ -277,7 +278,7 @@ func TestNoAllocs(t *testing.T) {
 	}
 }
 
-func BenchmarkByteDecoder(b *testing.B) {
+func Benchmark_Token(b *testing.B) {
 	ff, err := filepath.Glob(filepath.Join("testdata", "*.json"))
 	if err != nil {
 		b.Fatal(err)
@@ -288,21 +289,55 @@ func BenchmarkByteDecoder(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.Run(filepath.Base(f), func(b *testing.B) {
-			de := json.NewByteDecoder(doc)
-			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				for {
-					t := de.Token()
-					if t.Error() {
-						b.Fatal(t.Err)
+			b.Run("BytesDecoder", func(b *testing.B) {
+				de := json.NewByteDecoder(doc)
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					for {
+						t := de.Token()
+						if t.Error() {
+							b.Fatal(t.Err)
+						}
+						if t.EOF() {
+							break
+						}
 					}
-					if t.EOF() {
-						break
+					de.Reset(doc)
+				}
+			})
+			b.Run("ReadDecoder", func(b *testing.B) {
+				de := json.NewReadDecoder(bytes.NewReader(doc))
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					for {
+						t := de.Token()
+						if t.Error() {
+							b.Fatal(t.Err)
+						}
+						if t.EOF() {
+							break
+						}
+					}
+					de.Reset(bytes.NewReader(doc))
+				}
+			})
+			b.Run("std", func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					de := gojson.NewDecoder(bytes.NewReader(doc))
+					for {
+						t, err := de.Token()
+						if t == nil && err == io.EOF {
+							break
+						}
+						if err != nil {
+							b.Fatal(err)
+						}
 					}
 				}
-				de.Reset(doc)
-			}
+			})
 		})
 	}
 }
