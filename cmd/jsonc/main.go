@@ -34,7 +34,7 @@ var pkg *packages.Package
 var buf = new(bytes.Buffer)
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `usage: jsonc [-tags 'tag list'] type ...
+	errln(os.Stderr, `usage: jsonc [-tags 'tag list'] type ...
 
 -tags 'tag list'
 	a space-separated list of build tags to consider for finding files.`)
@@ -47,7 +47,7 @@ func main() {
 	flag.Usage = usage
 	types := flag.Args()
 	if len(types) == 0 {
-		fmt.Fprintf(os.Stderr, "no types specified\n\n")
+		errln("no types specified\n\n")
 		usage()
 		os.Exit(1)
 	}
@@ -59,11 +59,11 @@ func main() {
 	}
 	pkgs, err := packages.Load(cfg, ".")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		errln(err)
 		os.Exit(1)
 	}
 	if len(pkgs) != 1 {
-		fmt.Fprintf(os.Stderr, "%d packages found", len(pkgs))
+		errln(len(pkgs), "packages found")
 		os.Exit(1)
 	}
 	pkg = pkgs[0]
@@ -78,27 +78,27 @@ func main() {
 	for _, typ := range types {
 		s := findStruct(typ)
 		if s == nil {
-			fmt.Fprintf(os.Stderr, "type %s not found\n", typ)
+			errln("type", typ, "not found\n")
 			os.Exit(1)
 		}
 		generate(s, typ)
 	}
 	b, err := format.Source(buf.Bytes())
 	if err != nil {
-		fmt.Fprintln(os.Stderr, buf)
-		fmt.Fprintln(os.Stderr, "COULD NOT GOFMT")
+		errln(buf)
+		errln("COULD NOT GOFMT")
 		os.Exit(1)
 	}
 	if *output != "" {
 		if err := ioutil.WriteFile(*output, b, 0666); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			errln(err)
 			os.Exit(1)
 		}
 	} else {
 		fmt.Printf("%s", b)
 	}
 	if todo > 0 {
-		fmt.Fprintln(os.Stderr, "CHECK TODOS")
+		errln("CHECK TODOS")
 		os.Exit(1)
 	}
 }
@@ -125,7 +125,7 @@ func unmarshalStruct(s *ast.StructType, lhs, context string) {
 		if field.Tag != nil {
 			tag, err := strconv.Unquote(field.Tag.Value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "struct tag %s.%s: %s", context, fname, err)
+				errln("struct tag", fmt.Sprintf("%s.%s: %s", context, fname, err))
 				os.Exit(1)
 			}
 			tag = reflect.StructTag(tag).Get("json")
@@ -239,12 +239,16 @@ func releaseVar(name string) {
 
 // helpers ---
 
+func errln(a ...interface{}) {
+	_, _ = fmt.Fprintln(os.Stderr, a...)
+}
+
 func println(a ...interface{}) {
-	fmt.Fprintln(buf, a...)
+	_, _ = fmt.Fprintln(buf, a...)
 }
 
 func printf(format string, a ...interface{}) {
-	fmt.Fprintf(buf, format, a...)
+	_, _ = fmt.Fprintf(buf, format, a...)
 }
 
 var todo int
