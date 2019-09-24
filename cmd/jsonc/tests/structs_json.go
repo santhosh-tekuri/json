@@ -165,3 +165,19 @@ func (a *arrStruct) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (p *ptrStruct) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("ptrStruct", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			p.Field = nil
+			if !de.Peek().Null() {
+				p.Field = &stringVal{}
+			}
+			err = p.Field.DecodeJSON(de)
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}

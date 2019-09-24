@@ -190,8 +190,15 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 				printf("};")
 			}
 		default:
-			if equals == ":=" {
-				printf(`%s := %s{};`, lhs, t.Name)
+			if star {
+				printf("%s = nil;", lhs)
+				println("if !de.Peek().Null() {")
+				printf(`%s = &%s{};`, lhs, t.Name)
+				println("}")
+			} else {
+				if equals == ":=" {
+					printf(`%s := %s{};`, lhs, t.Name)
+				}
 			}
 			printf(`err %s %s.DecodeJSON(de);`, equals, lhs)
 		}
