@@ -19,6 +19,10 @@ import (
 	"strconv"
 )
 
+type ValueDecoder interface {
+	DecodeJSON(de Decoder) error
+}
+
 type Decoder interface {
 	Token() Token
 	Peek() Token

@@ -15,6 +15,25 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 			if val := de.Token(); !val.Null() {
 				e.Sirname, err = val.String("employee.Sirname")
 			}
+		case prop.Eq("ShortName"):
+			e.ShortName = nil
+			if val := de.Token(); !val.Null() {
+				var pval string
+				pval, err = val.String("employee.ShortName")
+				e.ShortName = &pval
+			}
+		case prop.Eq("ShortNames"):
+			err = json.DecodeArr("employee.ShortNames", de, func(de json.Decoder) error {
+				var item *string
+				var err error
+				if val := de.Token(); !val.Null() {
+					var pval string
+					pval, err = val.String("employee.ShortNames[]")
+					item = &pval
+				}
+				e.ShortNames = append(e.ShortNames, item)
+				return err
+			})
 		case prop.Eq("Permanent"):
 			if val := de.Token(); !val.Null() {
 				e.Permanent, err = val.Bool("employee.Permanent")

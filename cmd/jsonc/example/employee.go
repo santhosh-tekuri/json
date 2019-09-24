@@ -9,12 +9,15 @@ type employee struct {
 	Sirname    string `json:"sirName"`
 	firstName  string
 	LastName   string `json:"-"`
+	ShortName  *string
+	ShortNames []*string
 	Permanent  bool
 	Height     float64
 	Weight     int
 	NickNames  []string
 	Address    address
 	Addresses  []address
+	//Addr       *address
 	Notes1     interface{}
 	Notes2     []interface{}
 	Notes3     map[string]interface{}

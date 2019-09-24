@@ -34,7 +34,7 @@ var pkg *packages.Package
 var buf = new(bytes.Buffer)
 
 func usage() {
-	errln(os.Stderr, `usage: jsonc [-tags 'tag list'] type ...
+	errln(`usage: jsonc [-tags 'tag list'] type ...
 
 -tags 'tag list'
 	a space-separated list of build tags to consider for finding files.`)
@@ -47,7 +47,9 @@ func main() {
 	flag.Usage = usage
 	types := flag.Args()
 	if len(types) == 0 {
-		errln("no types specified\n\n")
+		errln("no types specified")
+		errln()
+		errln()
 		usage()
 		os.Exit(1)
 	}
@@ -78,7 +80,8 @@ func main() {
 	for _, typ := range types {
 		s := findStruct(typ)
 		if s == nil {
-			errln("type", typ, "not found\n")
+			errln("type", typ, "not found")
+			errln()
 			os.Exit(1)
 		}
 		generate(s, typ)
@@ -151,17 +154,37 @@ func unmarshalStruct(s *ast.StructType, lhs, context string) {
 }
 
 func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
+	star := false
+	if s, ok := t.(*ast.StarExpr); ok {
+		star = true
+		t = s.X
+		checkNull = true
+	}
 	switch t := t.(type) {
 	case *ast.Ident:
 		switch t.Name {
 		case "string", "float64", "bool", "int", "int64":
+			if star {
+				if equals == ":=" {
+					printf("var %s *%s;", lhs, expr2String(t))
+					printf("var err error;")
+				} else {
+					printf("%s = nil;", lhs)
+				}
+			}
 			val := "de.Token()"
 			if checkNull {
 				val = "val"
 				printf(`if val:=de.Token(); !val.Null() {`)
 			}
 			method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
-			printf(`%s, err %s %s.%s("%s");`, lhs, equals, val, method, context)
+			if star {
+				printf("var pval %s;", expr2String(t))
+				printf(`%s, err %s %s.%s("%s");`, "pval", "=", val, method, context)
+				printf("%s = &pval;", lhs)
+			} else {
+				printf(`%s, err %s %s.%s("%s");`, lhs, equals, val, method, context)
+			}
 			if checkNull {
 				printf("};")
 			}

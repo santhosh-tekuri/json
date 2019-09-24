@@ -36,6 +36,10 @@ func TestDecodeJSON(t *testing.T) {
 		{"mapstrinterface_prop", `{"Notes3": {"Street": "HSR", "City": "BEML"}}`, employee{}},
 		{"rawMessage_prop", `{"Raw": {"Street":"HSR","City":"BEML"}}`, employee{}},
 		{"anonstruct_prop", `{"Department": {"name":"finance","Manager":"scott"}}`, employee{}},
+		{"stringptr_prop", `{"ShortName": "sname"}`, employee{}},
+		{"stringptr_prop1", `{}`, employee{ShortName: stringPtr("sname")}},
+		{"stringptr_prop2", `{"ShortName": null}`, employee{ShortName: stringPtr("sname")}},
+		//{"objptr_prop", `{"Addr": {"Street": "HSR"}}`, employee{}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
@@ -66,4 +70,8 @@ func TestDecodeJSON(t *testing.T) {
 			f(t, json.NewReadDecoder(strings.NewReader(tt.doc)))
 		})
 	}
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
