@@ -38,6 +38,9 @@ func TestDecodeJSON(t *testing.T) {
 		{"arrPtrString_2", `{"Field": null}`, &arrPtrString{Field: []*string{addrString("hello")}}},
 		{"arrPtrString_3", `{}`, &arrPtrString{Field: []*string{addrString("hello")}}},
 		{"arrPtrString_4", `{"Field": ["hello", null, "world"]}`, &arrPtrString{Field: []*string{addrString("one")}}},
+		{"interfaceVal_1", `{"Field":["hello"]}`, &interfaceVal{}},
+		{"interfaceVal_2", `{"Field":null}`, &interfaceVal{Field: "hello"}},
+		{"interfaceVal_3", `{}`, &interfaceVal{Field: "hello"}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {

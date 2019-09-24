@@ -102,3 +102,14 @@ func (a *arrPtrString) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+func (i *interfaceVal) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("interfaceVal", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			i.Field, err = de.Decode()
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
