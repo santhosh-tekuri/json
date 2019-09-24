@@ -41,6 +41,9 @@ func TestDecodeJSON(t *testing.T) {
 		{"interfaceVal_1", `{"Field":["hello"]}`, &interfaceVal{}},
 		{"interfaceVal_2", `{"Field":null}`, &interfaceVal{Field: "hello"}},
 		{"interfaceVal_3", `{}`, &interfaceVal{Field: "hello"}},
+		{"arrInterface_1", `{"Field": [{"Street": "HSR"}, null, {"Street": "BEML"}]}`, &arrInterface{}},
+		{"arrInterface_2", `{"Field": null}`, &arrInterface{Field: []interface{}{"hello", nil, "world"}}},
+		{"arrInterface_3", `{}`, &arrInterface{Field: []interface{}{"hello", nil, "world"}}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {

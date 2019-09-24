@@ -1,6 +1,6 @@
 package tests
 
-//go:generate jsonc -o structs_json.go stringVal structTag excludeTag unexported arrString ptrString arrPtrString interfaceVal
+//go:generate jsonc -o structs_json.go stringVal structTag excludeTag unexported arrString ptrString arrPtrString interfaceVal arrInterface
 
 type stringVal struct {
 	Field string
@@ -32,4 +32,8 @@ type arrPtrString struct {
 
 type interfaceVal struct {
 	Field interface{}
+}
+
+type arrInterface struct {
+	Field []interface{}
 }

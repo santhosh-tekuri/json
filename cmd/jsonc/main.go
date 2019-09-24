@@ -202,6 +202,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			equals = "="
 		}
 		printf(`err %s json.DecodeArr("%s", de, func(de json.Decoder) error {`, equals, context)
+		println()
 		item := newVar("item")
 		unmarshal(false, item, ":=", context+"[]", t.Elt)
 		printf(`%s = append(%s, %s);`, lhs, lhs, item)
@@ -217,6 +218,7 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 		}
 		printf(`%s %s make(%s);`, lhs, equals, expr2String(t))
 		printf(`err %s json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
+		println()
 		printf(`k, _ := prop.String("");`)
 		v := newVar("v")
 		unmarshal(false, v, ":=", context+"{}", t.Value)
