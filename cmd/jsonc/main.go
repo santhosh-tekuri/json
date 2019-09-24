@@ -84,6 +84,7 @@ func main() {
 			errln()
 			os.Exit(1)
 		}
+		println()
 		generate(s, typ)
 	}
 	b, err := format.Source(buf.Bytes())

@@ -115,6 +115,7 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (a *address) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("address", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {

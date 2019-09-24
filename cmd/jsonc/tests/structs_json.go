@@ -17,6 +17,7 @@ func (s *stringVal) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (s *structTag) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("structTag", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -30,6 +31,7 @@ func (s *structTag) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (e *excludeTag) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("excludeTag", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -40,6 +42,7 @@ func (e *excludeTag) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (u *unexported) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("unexported", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -50,6 +53,7 @@ func (u *unexported) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (a *arrString) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrString", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -65,6 +69,7 @@ func (a *arrString) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (p *ptrString) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("ptrString", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -81,6 +86,7 @@ func (p *ptrString) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (a *arrPtrString) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrPtrString", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -102,6 +108,7 @@ func (a *arrPtrString) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (i *interfaceVal) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("interfaceVal", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -113,6 +120,7 @@ func (i *interfaceVal) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (a *arrInterface) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrInterface", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
@@ -128,6 +136,7 @@ func (a *arrInterface) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
 func (s *structVal) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("structVal", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
