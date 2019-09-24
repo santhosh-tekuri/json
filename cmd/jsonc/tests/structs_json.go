@@ -148,3 +148,20 @@ func (s *structVal) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (a *arrStruct) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("arrStruct", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			err = json.DecodeArr("arrStruct.Field", de, func(de json.Decoder) error {
+				item := stringVal{}
+				err := item.DecodeJSON(de)
+				a.Field = append(a.Field, item)
+				return err
+			})
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
