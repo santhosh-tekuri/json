@@ -191,7 +191,11 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			}
 		default:
 			if star {
-				printf("%s = nil;", lhs)
+				if equals == ":=" {
+					printf(`var %s *%s;`, lhs, expr2String(t))
+				} else {
+					printf("%s = nil;", lhs)
+				}
 				println("if !de.Peek().Null() {")
 				printf(`%s = &%s{};`, lhs, t.Name)
 				println("}")

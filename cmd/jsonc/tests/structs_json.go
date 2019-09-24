@@ -181,3 +181,23 @@ func (p *ptrStruct) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (a *arrPtrStruct) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("arrPtrStruct", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			err = json.DecodeArr("arrPtrStruct.Field", de, func(de json.Decoder) error {
+				var item *stringVal
+				if !de.Peek().Null() {
+					item = &stringVal{}
+				}
+				err := item.DecodeJSON(de)
+				a.Field = append(a.Field, item)
+				return err
+			})
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
