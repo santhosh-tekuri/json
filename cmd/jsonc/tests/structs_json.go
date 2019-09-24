@@ -128,3 +128,14 @@ func (a *arrInterface) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+func (s *structVal) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("structVal", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			err = s.Field.DecodeJSON(de)
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
