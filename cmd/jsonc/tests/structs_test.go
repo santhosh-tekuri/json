@@ -60,12 +60,15 @@ func TestDecodeJSON(t *testing.T) {
 		{"arrPtrStruct_3", `{}`, &arrPtrStruct{Field: []*stringVal{&stringVal{Field: "hello"}}}},
 		{"arrPtrStruct_4", `{"Field":[{"Field":"hello"}, null,{"Field":"world"}]}`, &arrPtrStruct{Field: []*stringVal{&stringVal{Field: "hello"}}}},
 		{"anonStructVal_1", `{"Field":{"Field":"hello"}}`, &anonStruct{}},
-		{"anonStructVal_2", `{"Field":null}`, &anonStruct{Field: stringVal{Field: "hello"}}},
-		{"anonStructVal_3", `{}`, &anonStruct{Field: stringVal{Field: "hello"}}},
+		{"anonStructVal_2", `{"Field":null}`, &anonStruct{Field: struct{ Field string }{Field: "hello"}}},
+		{"anonStructVal_3", `{}`, &anonStruct{Field: struct{ Field string }{Field: "hello"}}},
 		{"arrAnonStruct_1", `{"Field":[{"Field":"hello"}, null, {"Field": "world"}]}`, &arrAnonStruct{}},
 		{"arrAnonStruct_2", `{"Field":null}`, &arrAnonStruct{Field: []struct{ Field string }{{Field: "one"}}}},
 		{"arrAnonStruct_3", `{}`, &arrAnonStruct{Field: []struct{ Field string }{{Field: "one"}}}},
 		{"arrAnonStruct_4", `{"Field":[{"Field":"hello"}, null, {"Field":"world"}]}`, &arrAnonStruct{Field: []struct{ Field string }{{Field: "one"}}}},
+		{"ptrAnonStruct_1", `{"Field":{"Field":"hello"}}`, &ptrAnonStruct{}},
+		{"ptrAnonStruct_2", `{"Field":null}`, &ptrAnonStruct{Field: &struct{ Field string }{Field: "one"}}},
+		{"ptrAnonStruct_3", `{}`, &ptrAnonStruct{Field: &struct{ Field string }{Field: "one"}}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
