@@ -201,3 +201,26 @@ func (a *arrPtrStruct) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (a *anonStruct) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("anonStruct", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			err = json.DecodeObj("anonStruct.Field", de, func(de json.Decoder, prop json.Token) (err error) {
+				switch {
+				case prop.Eq("Field"):
+					if val := de.Token(); !val.Null() {
+						a.Field.Field, err = val.String("anonStruct.Field.Field")
+					}
+				default:
+					err = de.Skip()
+				}
+				return
+			})
+
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
