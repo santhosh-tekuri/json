@@ -246,6 +246,20 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 		}
 		printf(`%s, err %s de.Marshal();`, lhs, equals)
 	case *ast.StructType:
+		if star {
+			if equals == ":=" {
+				printf(`var %s *%s;`, lhs, expr2String(t))
+			} else {
+				printf("%s = nil;", lhs)
+			}
+			println("if !de.Peek().Null() {")
+			printf(`%s = &%s{};`, lhs, expr2String(t))
+			println("}")
+		} else {
+			if equals == ":=" {
+				printf(`%s := %s{};`, lhs, expr2String(t))
+			}
+		}
 		printf("err %s", equals)
 		unmarshalStruct(t, lhs, context)
 	default:
@@ -325,7 +339,7 @@ func expr2String(t ast.Expr) string {
 		return expr2String(t.X) + "." + expr2String(t.Sel)
 	case *ast.StructType:
 		var buf = strings.Builder{}
-		buf.WriteString("struct {")
+		buf.WriteString("struct {\n")
 		for _, f := range t.Fields.List {
 			buf.WriteString(f.Names[0].Name)
 			buf.WriteString(" ")
