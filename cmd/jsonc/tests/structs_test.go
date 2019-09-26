@@ -69,6 +69,10 @@ func TestDecodeJSON(t *testing.T) {
 		{"ptrAnonStruct_1", `{"Field":{"Field":"hello"}}`, &ptrAnonStruct{}},
 		{"ptrAnonStruct_2", `{"Field":null}`, &ptrAnonStruct{Field: &struct{ Field string }{Field: "one"}}},
 		{"ptrAnonStruct_3", `{}`, &ptrAnonStruct{Field: &struct{ Field string }{Field: "one"}}},
+		{"arrPtrAnonStruct_1", `{"Field":[{"Field":"hello"}, null,{"Field":"world"}]}`, &arrPtrAnonStruct{}},
+		{"arrPtrAnonStruct_2", `{"Field": null}`, &arrPtrAnonStruct{Field: []*struct{ Field string }{{Field: "hello"}}}},
+		{"arrPtrAnonStruct_3", `{}`, &arrPtrAnonStruct{Field: []*struct{ Field string }{{Field: "hello"}}}},
+		{"arrPtrAnonStruct_4", `{"Field":[{"Field":"hello"}, null,{"Field":"world"}]}`, &arrPtrAnonStruct{Field: []*struct{ Field string }{{Field: "hello"}}}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {

@@ -282,3 +282,37 @@ func (p *ptrAnonStruct) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (a *arrPtrAnonStruct) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("arrPtrAnonStruct", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			err = json.DecodeArr("arrPtrAnonStruct.Field", de, func(de json.Decoder) error {
+				var item *struct {
+					Field string
+				}
+				if !de.Peek().Null() {
+					item = &struct {
+						Field string
+					}{}
+				}
+				err := json.DecodeObj("arrPtrAnonStruct.Field[]", de, func(de json.Decoder, prop json.Token) (err error) {
+					switch {
+					case prop.Eq("Field"):
+						if val := de.Token(); !val.Null() {
+							item.Field, err = val.String("arrPtrAnonStruct.Field[].Field")
+						}
+					default:
+						err = de.Skip()
+					}
+					return
+				})
+				a.Field = append(a.Field, item)
+				return err
+			})
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
