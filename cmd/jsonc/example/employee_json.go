@@ -23,6 +23,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 				e.ShortName = &pval
 			}
 		case prop.Eq("ShortNames"):
+			if de.Peek().Null() {
+				e.ShortNames = nil
+			} else {
+				e.ShortNames = []*string{}
+			}
 			err = json.DecodeArr("employee.ShortNames", de, func(de json.Decoder) error {
 				var item *string
 				var err error
@@ -47,6 +52,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 				e.Weight, err = val.Int("employee.Weight")
 			}
 		case prop.Eq("NickNames"):
+			if de.Peek().Null() {
+				e.NickNames = nil
+			} else {
+				e.NickNames = []string{}
+			}
 			err = json.DecodeArr("employee.NickNames", de, func(de json.Decoder) error {
 				item, err := de.Token().String("employee.NickNames[]")
 				e.NickNames = append(e.NickNames, item)
@@ -55,6 +65,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 		case prop.Eq("Address"):
 			err = e.Address.DecodeJSON(de)
 		case prop.Eq("Addresses"):
+			if de.Peek().Null() {
+				e.Addresses = nil
+			} else {
+				e.Addresses = []address{}
+			}
 			err = json.DecodeArr("employee.Addresses", de, func(de json.Decoder) error {
 				item := address{}
 				err := item.DecodeJSON(de)
@@ -64,6 +79,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 		case prop.Eq("Notes1"):
 			e.Notes1, err = de.Decode()
 		case prop.Eq("Notes2"):
+			if de.Peek().Null() {
+				e.Notes2 = nil
+			} else {
+				e.Notes2 = []interface{}{}
+			}
 			err = json.DecodeArr("employee.Notes2", de, func(de json.Decoder) error {
 				item, err := de.Decode()
 				e.Notes2 = append(e.Notes2, item)

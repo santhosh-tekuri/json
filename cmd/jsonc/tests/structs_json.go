@@ -58,6 +58,11 @@ func (a *arrString) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrString", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []string{}
+			}
 			err = json.DecodeArr("arrString.Field", de, func(de json.Decoder) error {
 				item, err := de.Token().String("arrString.Field[]")
 				a.Field = append(a.Field, item)
@@ -91,6 +96,11 @@ func (a *arrPtrString) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrPtrString", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []*string{}
+			}
 			err = json.DecodeArr("arrPtrString.Field", de, func(de json.Decoder) error {
 				var item *string
 				var err error
@@ -125,6 +135,11 @@ func (a *arrInterface) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrInterface", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []interface{}{}
+			}
 			err = json.DecodeArr("arrInterface.Field", de, func(de json.Decoder) error {
 				item, err := de.Decode()
 				a.Field = append(a.Field, item)
@@ -153,6 +168,11 @@ func (a *arrStruct) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrStruct", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []stringVal{}
+			}
 			err = json.DecodeArr("arrStruct.Field", de, func(de json.Decoder) error {
 				item := stringVal{}
 				err := item.DecodeJSON(de)
@@ -186,6 +206,11 @@ func (a *arrPtrStruct) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrPtrStruct", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []*stringVal{}
+			}
 			err = json.DecodeArr("arrPtrStruct.Field", de, func(de json.Decoder) error {
 				var item *stringVal
 				if !de.Peek().Null() {
@@ -229,6 +254,13 @@ func (a *arrAnonStruct) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrAnonStruct", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []struct {
+					Field string
+				}{}
+			}
 			err = json.DecodeArr("arrAnonStruct.Field", de, func(de json.Decoder) error {
 				item := struct {
 					Field string
@@ -287,6 +319,13 @@ func (a *arrPtrAnonStruct) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("arrPtrAnonStruct", de, func(de json.Decoder, prop json.Token) (err error) {
 		switch {
 		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				a.Field = nil
+			} else {
+				a.Field = []*struct {
+					Field string
+				}{}
+			}
 			err = json.DecodeArr("arrPtrAnonStruct.Field", de, func(de json.Decoder) error {
 				var item *struct {
 					Field string

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mohae/deepcopy"
 	"github.com/santhosh-tekuri/json"
 )
 
@@ -79,13 +80,12 @@ func TestDecodeJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
-			got := tt.val
+			got := deepcopy.Copy(tt.val).(json.ValueDecoder)
 			gerr := got.DecodeJSON(de)
 			if gerr != nil {
 				t.Log("gerr:", gerr)
 			}
-
-			want := tt.val
+			want := deepcopy.Copy(tt.val)
 			werr := gojson.Unmarshal([]byte(tt.doc), &want)
 			if werr != nil {
 				t.Log("werr:", werr)
@@ -94,8 +94,8 @@ func TestDecodeJSON(t *testing.T) {
 				t.Fatal("errors did not match")
 			}
 			if gerr == nil && !reflect.DeepEqual(got, want) {
-				t.Log("got:", got)
-				t.Log("want:", want)
+				t.Logf("got: %#v\n", got)
+				t.Logf("want: %#v\n", want)
 				t.Fatal("values did not match")
 			}
 		}

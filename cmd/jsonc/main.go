@@ -212,6 +212,12 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 		if equals == ":=" {
 			printf(`var %s []%s;`, lhs, expr2String(t.Elt))
 			equals = "="
+		} else {
+			println("if de.Peek().Null() {")
+			printf(`%s = nil;`, lhs)
+			println("} else {")
+			printf(`%s = []%s{};`, lhs, expr2String(t.Elt))
+			println("}")
 		}
 		printf(`err %s json.DecodeArr("%s", de, func(de json.Decoder) error {`, equals, context)
 		println()
