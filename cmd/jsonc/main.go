@@ -234,7 +234,16 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 			notImplemented()
 			return
 		}
-		printf(`%s %s make(%s);`, lhs, equals, expr2String(t))
+		if equals == ":=" {
+			printf(`var %s map[string]%s;`, lhs, expr2String(t.Value))
+			equals = "="
+		} else {
+			println("if de.Peek().Null() {")
+			printf(`%s = nil;`, lhs)
+			printf("} else if %s == nil {", lhs)
+			printf(`%s = map[string]%s{};`, lhs, expr2String(t.Value))
+			println("}")
+		}
 		printf(`err %s json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
 		println()
 		printf(`k, _ := prop.String("");`)

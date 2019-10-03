@@ -355,3 +355,25 @@ func (a *arrPtrAnonStruct) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (m *mapString) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("mapString", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			if de.Peek().Null() {
+				m.Field = nil
+			} else if m.Field == nil {
+				m.Field = map[string]string{}
+			}
+			err = json.DecodeObj("mapString.Field", de, func(de json.Decoder, prop json.Token) (err error) {
+				k, _ := prop.String("")
+				v, err := de.Token().String("mapString.Field{}")
+				m.Field[k] = v
+				return err
+			})
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}

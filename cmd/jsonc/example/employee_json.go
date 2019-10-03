@@ -90,7 +90,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Notes3"):
-			e.Notes3 = make(map[string]interface{})
+			if de.Peek().Null() {
+				e.Notes3 = nil
+			} else if e.Notes3 == nil {
+				e.Notes3 = map[string]interface{}{}
+			}
 			err = json.DecodeObj("employee.Notes3", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
 				v, err := de.Decode()
@@ -98,7 +102,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Contacts"):
-			e.Contacts = make(map[string][]string)
+			if de.Peek().Null() {
+				e.Contacts = nil
+			} else if e.Contacts == nil {
+				e.Contacts = map[string][]string{}
+			}
 			err = json.DecodeObj("employee.Contacts", de, func(de json.Decoder, prop json.Token) (err error) {
 				k, _ := prop.String("")
 				var v []string
