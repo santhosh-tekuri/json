@@ -286,17 +286,19 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 var scope = make(map[string]struct{})
 
 func newVar(name string) string {
-	if _, ok := scope[name]; !ok {
-		return name
-	}
-	i := 1
-	for {
-		n := fmt.Sprintf("%s%d", name, i)
-		if _, ok := scope[n]; !ok {
-			return n
+	if _, ok := scope[name]; ok {
+		i := 1
+		for {
+			n := fmt.Sprintf("%s%d", name, i)
+			if _, ok := scope[n]; !ok {
+				name = n
+				break
+			}
+			i++
 		}
-		i++
 	}
+	scope[name] = struct{}{}
+	return name
 }
 
 func releaseVar(name string) {
