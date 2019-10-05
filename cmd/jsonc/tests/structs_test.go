@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mohae/deepcopy"
 	"github.com/santhosh-tekuri/json"
@@ -81,6 +82,9 @@ func TestDecodeJSON(t *testing.T) {
 		{"mapString_2", `{"Field":{"k1": "v1"}}`, &mapString{Field: map[string]string{"k2": "v2"}}},
 		{"mapString_3", `{"Field":null}`, &mapString{Field: map[string]string{"k2": "v2"}}},
 		{"mapString_4", `{"Field":null}`, &mapString{}},
+		{"timeVal_1", `{"Field":"2018-09-22T12:42:31Z"}`, &timeVal{}},
+		{"timeVal_2", `{"Field":null}`, &timeVal{Field: time.Now()}},
+		{"timeVal_3", `{}`, &timeVal{Field: time.Now()}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {

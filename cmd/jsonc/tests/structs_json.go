@@ -377,3 +377,19 @@ func (m *mapString) DecodeJSON(de json.Decoder) error {
 		return
 	})
 }
+
+func (t *timeVal) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("timeVal", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			var b []byte
+			b, err = de.Marshal()
+			if err == nil {
+				err = t.Field.UnmarshalJSON(b)
+			}
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
