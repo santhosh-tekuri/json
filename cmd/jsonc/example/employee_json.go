@@ -119,7 +119,11 @@ func (e *employee) DecodeJSON(de json.Decoder) error {
 				return err
 			})
 		case prop.Eq("Raw"):
-			e.Raw, err = de.Marshal()
+			var b []byte
+			b, err = de.Marshal()
+			if err == nil {
+				err = e.Raw.UnmarshalJSON(b)
+			}
 		case prop.Eq("Department"):
 			err = json.DecodeObj("employee.Department", de, func(de json.Decoder, prop json.Token) (err error) {
 				switch {

@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
+	"go/importer"
+	"go/parser"
 	"go/token"
+	"go/types"
 	"io/ioutil"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -37,7 +39,7 @@ func usage() {
 	errln(`usage: jsonc [-tags 'tag list'] type ...
 
 -tags 'tag list'
-	a space-separated list of build tags to consider for finding files.`)
+    a space-separated list of build tags to consider for finding files.`)
 }
 
 func main() {
@@ -107,32 +109,30 @@ func main() {
 	}
 }
 
-func generate(s *ast.StructType, sname string) {
+func generate(s *types.Struct, sname string) {
 	r := strings.ToLower(sname[:1])
+	r = newVar(r)
 	printf("func (%s *%s) DecodeJSON(de json.Decoder) error {\n", r, sname)
 	printf(`return `)
 	unmarshalStruct(s, r, sname)
 	println(`}`)
+	releaseVar(r)
 }
 
-func unmarshalStruct(s *ast.StructType, lhs, context string) {
+func unmarshalStruct(s *types.Struct, lhs, context string) {
 	printf(`json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {
-			switch {
-	`, context)
+            switch {
+    `, context)
 
-	for _, field := range s.Fields.List {
-		fname := field.Names[0].Name
-		if !ast.IsExported(fname) {
+	for i := 0; i < s.NumFields(); i++ {
+		field := s.Field(i)
+		if !field.Exported() {
 			continue
 		}
+		fname := field.Name()
 		prop := fname
-		if field.Tag != nil {
-			tag, err := strconv.Unquote(field.Tag.Value)
-			if err != nil {
-				errln("struct tag", fmt.Sprintf("%s.%s: %s", context, fname, err))
-				os.Exit(1)
-			}
-			tag = reflect.StructTag(tag).Get("json")
+		if s.Tag(i) != "" {
+			tag := reflect.StructTag(s.Tag(i)).Get("json")
 			opts := strings.Split(tag, ",")
 			if len(opts) > 0 && opts[0] != "" {
 				prop = opts[0]
@@ -144,30 +144,40 @@ func unmarshalStruct(s *ast.StructType, lhs, context string) {
 		printf(`case prop.Eq("%s"):`, prop)
 		lhs := lhs + "." + fname
 		context := context + "." + fname
-		unmarshal(true, lhs, "=", context, field.Type)
+		unmarshal(true, lhs, "=", context, field.Type())
 	}
 	println(`
-		default:
-			err = de.Skip()
-		}
-		return
-	});`)
+        default:
+            err = de.Skip()
+        }
+        return
+    });`)
 }
 
-func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
+func unmarshal(checkNull bool, lhs, equals, context string, t types.Type) {
+	if types.Implements(types.NewPointer(t), jsonUnmarshaller) {
+		b := newVar("b")
+		printf("var %s []byte;", b)
+		printf(`%s, err %s de.Marshal();`, b, equals)
+		printf("if err==nil {")
+		printf(`err = %s.UnmarshalJSON(%s);`, lhs, b)
+		printf("};")
+		return
+	}
+
 	star := false
-	if s, ok := t.(*ast.StarExpr); ok {
+	if s, ok := t.(*types.Pointer); ok {
 		star = true
-		t = s.X
+		t = s.Elem()
 		checkNull = true
 	}
 	switch t := t.(type) {
-	case *ast.Ident:
-		switch t.Name {
-		case "string", "float64", "bool", "int", "int64":
+	case *types.Basic:
+		switch t.Kind() {
+		case types.String, types.Float64, types.Bool, types.Int, types.Int64:
 			if star {
 				if equals == ":=" {
-					printf("var %s *%s;", lhs, expr2String(t))
+					printf("var %s *%s;", lhs, type2String(t))
 					printf("var err error;")
 				} else {
 					printf("%s = nil;", lhs)
@@ -178,9 +188,9 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 				val = "val"
 				printf(`if val:=de.Token(); !val.Null() {`)
 			}
-			method := strings.ToUpper(t.Name[:1]) + t.Name[1:]
+			method := strings.ToUpper(t.Name()[:1]) + t.Name()[1:]
 			if star {
-				printf("var pval %s;", expr2String(t))
+				printf("var pval %s;", type2String(t))
 				printf(`%s, err %s %s.%s("%s");`, "pval", "=", val, method, context)
 				printf("%s = &pval;", lhs)
 			} else {
@@ -190,95 +200,92 @@ func unmarshal(checkNull bool, lhs, equals, context string, t ast.Expr) {
 				printf("};")
 			}
 		default:
-			if star {
-				if equals == ":=" {
-					printf(`var %s *%s;`, lhs, expr2String(t))
-				} else {
-					printf("%s = nil;", lhs)
-				}
-				println("if !de.Peek().Null() {")
-				printf(`%s = &%s{};`, lhs, t.Name)
-				println("}")
-			} else {
-				if equals == ":=" {
-					printf(`%s := %s{};`, lhs, t.Name)
-				}
-			}
-			printf(`err %s %s.DecodeJSON(de);`, equals, lhs)
+			printf("\n//%s %s %#v\n", lhs, t.String(), t)
+			notImplemented()
 		}
-	case *ast.InterfaceType:
-		printf(`%s, err %s de.Decode();`, lhs, equals)
-	case *ast.ArrayType:
+	case *types.Named:
+		if star {
+			if equals == ":=" {
+				printf(`var %s *%s;`, lhs, type2String(t))
+			} else {
+				printf("%s = nil;", lhs)
+			}
+			println("if !de.Peek().Null() {")
+			printf(`%s = &%s{};`, lhs, type2String(t))
+			println("}")
+		} else {
+			if equals == ":=" {
+				printf(`%s := %s{};`, lhs, type2String(t))
+			}
+		}
+		printf(`err %s %s.DecodeJSON(de);`, equals, lhs)
+	case *types.Struct:
+		if star {
+			if equals == ":=" {
+				printf(`var %s *%s;`, lhs, type2String(t))
+			} else {
+				printf("%s = nil;", lhs)
+			}
+			println("if !de.Peek().Null() {")
+			printf(`%s = &%s{};`, lhs, type2String(t))
+			println("}")
+		} else {
+			if equals == ":=" {
+				printf(`%s := %s{};`, lhs, type2String(t))
+			}
+		}
+		printf("err %s", equals)
+		unmarshalStruct(t, lhs, context)
+	case *types.Slice:
 		if equals == ":=" {
-			printf(`var %s []%s;`, lhs, expr2String(t.Elt))
+			printf(`var %s []%s;`, lhs, type2String(t.Elem()))
 			equals = "="
 		} else {
 			println("if de.Peek().Null() {")
 			printf(`%s = nil;`, lhs)
 			println("} else {")
-			printf(`%s = []%s{};`, lhs, expr2String(t.Elt))
+			printf(`%s = []%s{};`, lhs, type2String(t.Elem()))
 			println("}")
 		}
 		printf(`err %s json.DecodeArr("%s", de, func(de json.Decoder) error {`, equals, context)
 		println()
 		item := newVar("item")
-		unmarshal(false, item, ":=", context+"[]", t.Elt)
+		unmarshal(false, item, ":=", context+"[]", t.Elem())
 		printf(`%s = append(%s, %s);`, lhs, lhs, item)
 		printf("return err;")
 		printf("});")
 		releaseVar(item)
-	case *ast.MapType:
-		ktype := expr2String(t.Key)
+	case *types.Map:
+		ktype := type2String(t.Key())
 		if ktype != "string" {
 			printf("\n// map with non-string key not implemented\n")
 			notImplemented()
 			return
 		}
 		if equals == ":=" {
-			printf(`var %s map[string]%s;`, lhs, expr2String(t.Value))
+			printf(`var %s map[string]%s;`, lhs, type2String(t.Elem()))
 			equals = "="
 		} else {
 			println("if de.Peek().Null() {")
 			printf(`%s = nil;`, lhs)
 			printf("} else if %s == nil {", lhs)
-			printf(`%s = map[string]%s{};`, lhs, expr2String(t.Value))
+			printf(`%s = map[string]%s{};`, lhs, type2String(t.Elem()))
 			println("}")
 		}
 		printf(`err %s json.DecodeObj("%s", de, func(de json.Decoder, prop json.Token) (err error) {`, equals, context)
 		println()
 		printf(`k, _ := prop.String("");`)
 		v := newVar("v")
-		unmarshal(false, v, ":=", context+"{}", t.Value)
+		unmarshal(false, v, ":=", context+"{}", t.Elem())
 		printf(`%s[k] = %s;`, lhs, v)
 		printf("return err;")
 		printf("});")
 		releaseVar(v)
-	case *ast.SelectorExpr:
-		if expr2String(t) != "json.RawMessage" {
-			printf("\n//%s %s %#v\n", lhs, expr2String(t), t)
-			notImplemented()
-			return
-		}
-		printf(`%s, err %s de.Marshal();`, lhs, equals)
-	case *ast.StructType:
-		if star {
-			if equals == ":=" {
-				printf(`var %s *%s;`, lhs, expr2String(t))
-			} else {
-				printf("%s = nil;", lhs)
-			}
-			println("if !de.Peek().Null() {")
-			printf(`%s = &%s{};`, lhs, expr2String(t))
-			println("}")
-		} else {
-			if equals == ":=" {
-				printf(`%s := %s{};`, lhs, expr2String(t))
-			}
-		}
-		printf("err %s", equals)
-		unmarshalStruct(t, lhs, context)
+	case *types.Interface:
+		// todo check empty interface
+		printf(`%s, err %s de.Decode();`, lhs, equals)
 	default:
-		printf("\n//%s %s %#v\n", lhs, expr2String(t), t)
+		printf("\n//%s %s %#v\n", lhs, t.String(), t)
 		notImplemented()
 	}
 }
@@ -326,52 +333,81 @@ func notImplemented() {
 	printf(`panic("TODO: NOT IMPLEMENTED YET");`)
 }
 
-func findStruct(name string) *ast.StructType {
-	for _, file := range pkg.Syntax {
-		for _, decl := range file.Decls {
-			if decl, ok := decl.(*ast.GenDecl); ok {
-				if decl.Tok == token.TYPE {
-					ts := decl.Specs[0].(*ast.TypeSpec)
-					if s, ok := ts.Type.(*ast.StructType); ok && ts.Name.Name == name {
-						return s
-					}
-				}
-			}
-		}
+func findStruct(name string) *types.Struct {
+	obj := pkg.Types.Scope().Lookup(name)
+	if obj == nil {
+		return nil
+	}
+	if s, ok := obj.Type().Underlying().(*types.Struct); ok {
+		return s
 	}
 	return nil
 }
 
-func expr2String(t ast.Expr) string {
+func type2String(t types.Type) string {
 	switch t := t.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.InterfaceType:
-		return "interface{}"
-	case *ast.ArrayType:
-		return "[]" + expr2String(t.Elt)
-	case *ast.MapType:
-		return "map[" + expr2String(t.Key) + "]" + expr2String(t.Value)
-	case *ast.SelectorExpr:
-		return expr2String(t.X) + "." + expr2String(t.Sel)
-	case *ast.StructType:
+	case *types.Basic:
+		return t.Name()
+	case *types.Slice:
+		return "[]" + type2String(t.Elem())
+	case *types.Pointer:
+		return "*" + type2String(t.Elem())
+	case *types.Named:
+		return t.Obj().Name()
+	case *types.Interface:
+		return t.String()
+	case *types.Struct:
 		var buf = strings.Builder{}
 		buf.WriteString("struct {\n")
-		for _, f := range t.Fields.List {
-			buf.WriteString(f.Names[0].Name)
+		for i := 0; i < t.NumFields(); i++ {
+			f := t.Field(i)
+			buf.WriteString(f.Name())
 			buf.WriteString(" ")
-			buf.WriteString(expr2String(f.Type))
-			if f.Tag != nil {
+			buf.WriteString(type2String(f.Type()))
+			if t.Tag(i) != "" {
 				buf.WriteString(" ")
-				buf.WriteString(f.Tag.Value)
+				buf.WriteString(t.Tag(i))
 			}
 			buf.WriteString(";")
 		}
 		buf.WriteString("}")
 		return buf.String()
-	case *ast.StarExpr:
-		return "*" + expr2String(t.X)
 	default:
-		panic(fmt.Sprintf("expr2String(%T)", t))
+		panic(fmt.Sprintf("type2String(%T)", t))
 	}
+}
+
+var jsonUnmarshaller = getIface()
+
+func getIface() *types.Interface {
+	const file = `package json
+type Unmarshaler interface {
+    UnmarshalJSON([]byte) error
+}
+`
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "iface.go", file, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	config := &types.Config{
+		Error: func(e error) {
+			fmt.Println(e)
+		},
+		Importer: importer.Default(),
+	}
+
+	info := types.Info{
+		Types: make(map[ast.Expr]types.TypeAndValue),
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+	}
+
+	pkg, e := config.Check("genval", fset, []*ast.File{f}, &info)
+	if e != nil {
+		fmt.Println(e)
+	}
+
+	return pkg.Scope().Lookup("Unmarshaler").Type().Underlying().(*types.Interface)
 }
