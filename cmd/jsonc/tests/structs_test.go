@@ -85,6 +85,9 @@ func TestDecodeJSON(t *testing.T) {
 		{"timeVal_1", `{"Field":"2018-09-22T12:42:31Z"}`, &timeVal{}},
 		{"timeVal_2", `{"Field":null}`, &timeVal{Field: time.Now()}},
 		{"timeVal_3", `{}`, &timeVal{Field: time.Now()}},
+		{"ptrTime_1", `{"Field":"2018-09-22T12:42:31Z"}`, &ptrTime{}},
+		{"ptrTime_2", `{"Field": null}`, &ptrTime{Field: addrTime(time.Now())}},
+		{"ptrTime_3", `{}`, &ptrTime{Field: addrTime(time.Now())}},
 	}
 	for _, tt := range tests {
 		f := func(t *testing.T, de json.Decoder) {
@@ -118,4 +121,8 @@ func TestDecodeJSON(t *testing.T) {
 
 func addrString(s string) *string {
 	return &s
+}
+
+func addrTime(t time.Time) *time.Time {
+	return &t
 }

@@ -2,7 +2,10 @@
 
 package tests
 
-import "github.com/santhosh-tekuri/json"
+import (
+	"github.com/santhosh-tekuri/json"
+	"time"
+)
 
 func (s *stringVal) DecodeJSON(de json.Decoder) error {
 	return json.DecodeObj("stringVal", de, func(de json.Decoder, prop json.Token) (err error) {
@@ -386,6 +389,26 @@ func (t *timeVal) DecodeJSON(de json.Decoder) error {
 			b, err = de.Marshal()
 			if err == nil {
 				err = t.Field.UnmarshalJSON(b)
+			}
+		default:
+			err = de.Skip()
+		}
+		return
+	})
+}
+
+func (p *ptrTime) DecodeJSON(de json.Decoder) error {
+	return json.DecodeObj("ptrTime", de, func(de json.Decoder, prop json.Token) (err error) {
+		switch {
+		case prop.Eq("Field"):
+			p.Field = nil
+			if !de.Peek().Null() {
+				p.Field = &time.Time{}
+			}
+			var b []byte
+			b, err = de.Marshal()
+			if err == nil {
+				err = p.Field.UnmarshalJSON(b)
 			}
 		default:
 			err = de.Skip()

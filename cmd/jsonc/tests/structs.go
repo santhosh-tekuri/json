@@ -2,7 +2,7 @@ package tests
 
 import "time"
 
-//go:generate jsonc -o structs_json.go stringVal structTag excludeTag unexported arrString ptrString arrPtrString interfaceVal arrInterface structVal arrStruct ptrStruct arrPtrStruct anonStruct arrAnonStruct ptrAnonStruct arrPtrAnonStruct mapString timeVal
+//go:generate jsonc -o structs_json.go stringVal structTag excludeTag unexported arrString ptrString arrPtrString interfaceVal arrInterface structVal arrStruct ptrStruct arrPtrStruct anonStruct arrAnonStruct ptrAnonStruct arrPtrAnonStruct mapString timeVal ptrTime
 
 type stringVal struct {
 	Field string
@@ -86,4 +86,8 @@ type mapString struct {
 
 type timeVal struct {
 	Field time.Time
+}
+
+type ptrTime struct {
+	Field *time.Time
 }
