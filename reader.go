@@ -71,7 +71,7 @@ func (d *ReadDecoder) Token() Token {
 			} else {
 				buf := d.d.buf
 				if n == cap(d.d.buf) {
-					buf = make([]byte, 1024)
+					buf = make([]byte, cap(d.d.buf)+1024)
 				}
 				copy(buf, d.d.buf[pos:])
 				d.d.buf = buf[:n]
