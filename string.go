@@ -21,7 +21,7 @@ import (
 )
 
 func (d *ByteDecoder) string() Token {
-	d.mark = d.pos
+	mark := d.pos
 	d.pos++
 	for {
 		if d.pos == len(d.buf) {
@@ -31,7 +31,7 @@ func (d *ByteDecoder) string() Token {
 		switch b {
 		case '"':
 			d.pos++
-			return Token{Kind: Str, Data: d.buf[d.mark:d.pos]}
+			return Token{Kind: Str, Data: d.buf[mark:d.pos]}
 		case '\\':
 			d.pos++
 			if d.pos == len(d.buf) {

@@ -18,7 +18,7 @@ func (d *ByteDecoder) number() Token {
 	if d.pos == len(d.buf) {
 		return d.unexpectedEOF()
 	}
-	d.mark = d.pos
+	mark := d.pos
 
 	// optional -
 	if d.buf[d.pos] == '-' {
@@ -39,7 +39,7 @@ func (d *ByteDecoder) number() Token {
 			d.pos++
 		}
 	default:
-		if d.mark == d.pos {
+		if mark == d.pos {
 			return d.error("looking for beginning of value")
 		}
 		return d.error("in numeric literal")
@@ -74,7 +74,7 @@ func (d *ByteDecoder) number() Token {
 		}
 	}
 
-	return Token{Kind: Num, Data: d.buf[d.mark:d.pos]}
+	return Token{Kind: Num, Data: d.buf[mark:d.pos]}
 }
 
 func digit(p byte) bool {

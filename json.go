@@ -37,7 +37,6 @@ type ByteDecoder struct {
 	buf   []byte
 	pos   int
 	stack []byte
-	mark  int
 	empty Kind // tells action to take when stack is empty
 	peek  Token
 
@@ -72,7 +71,6 @@ func (d *ByteDecoder) Token() Token {
 		d.peek = Token{}
 		return t
 	}
-	d.mark = -1
 	// skip whitespace
 	for d.pos < len(d.buf) && whitespace(d.buf[d.pos]) {
 		d.pos++
@@ -158,17 +156,17 @@ func (d *ByteDecoder) Token() Token {
 		}
 		return d.error("in literal null")
 	case 't':
-		d.mark = d.pos
+		mark := d.pos
 		d.pos++
 		if d.match('r') && d.match('u') && d.match('e') {
-			return Token{Kind: Bool, Data: d.buf[d.mark:d.pos]}
+			return Token{Kind: Bool, Data: d.buf[mark:d.pos]}
 		}
 		return d.error("in literal true")
 	case 'f':
-		d.mark = d.pos
+		mark := d.pos
 		d.pos++
 		if d.match('a') && d.match('l') && d.match('s') && d.match('e') {
-			return Token{Kind: Bool, Data: d.buf[d.mark:d.pos]}
+			return Token{Kind: Bool, Data: d.buf[mark:d.pos]}
 		}
 		return d.error("in literal false")
 	default:
